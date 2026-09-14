@@ -68,7 +68,7 @@ export default function Home() {
       <a href="#programi" className="hover:text-[#d4af37] transition-colors">Programi</a>
       <a href="#o-meni" className="hover:text-[#d4af37] transition-colors">O Meni</a>
       <a href="#faq" className="hover:text-[#d4af37] transition-colors">FAQ</a>
-      <Link href="/blog" className="hover:text-[#d4af37] transition-colors">Blog</Link>
+      <Link href="https://blog.elitebounce.fit" className="hover:text-[#d4af37] transition-colors">Blog</Link>
     </div>
 
     {/* 3. Desna kolona: Ikonice i dugmad */}
@@ -407,7 +407,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>&copy; {new Date().getFullYear()} ELITE BOUNCE. Sva prava zadržana.</p>
           <div className="flex gap-6 text-gray-400">
-            <Link href="/blog" className="hover:text-[#d4af37] transition-colors">Blog</Link>
+            <Link href="https://blog.elitebounce.fit" className="hover:text-[#d4af37] transition-colors">Blog</Link>
             <a href="https://instagram.com/elite_bounce" target="_blank" rel="noopener noreferrer" className="hover:text-[#d4af37] transition-colors">Instagram</a>
             <a href="https://www.linkedin.com/company/elite-bounce/" target="_blank" rel="noopener noreferrer" className="hover:text-[#d4af37] transition-colors">LinkedIn</a>
           </div>
