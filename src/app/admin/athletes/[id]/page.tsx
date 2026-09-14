@@ -113,19 +113,7 @@ export default async function AthleteDetailPage({
             <div>
               <span className="text-[#d4af37] font-mono text-xs font-bold uppercase tracking-widest">PROFIL SPORTISTE</span>
               <h1 className="font-display text-3xl font-black uppercase text-white mt-1">{athlete.full_name}</h1>
-              <div className="text-xs text-gray-400 font-mono mt-1 flex flex-wrap gap-3">
-                <span>{athlete.sport || 'Opći sport'}</span>
-                <span>•</span>
-                <span>{athlete.gender}</span>
-                <span>•</span>
-                <span>{athlete.age} godina</span>
-                {athlete.email && (
-                  <>
-                    <span>•</span>
-                    <span>{athlete.email}</span>
-                  </>
-                )}
-              </div>
+            
             </div>
 
             <div className="flex items-center gap-3">
@@ -136,15 +124,7 @@ export default async function AthleteDetailPage({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-[#0a0a0a] border border-[#1f1f1f] p-4 rounded-lg space-y-2">
-              <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider block">Pristupni podaci</span>
-              <div className="text-xs space-y-1 font-mono">
-                <div><span className="text-gray-400">Email:</span> <span className="text-white">{athlete.email || 'Nije unesen'}</span></div>
-                <div><span className="text-gray-400">Lozinka:</span> <span className="text-[#d4af37]">{athlete.password || 'Nije postavljena'}</span></div>
-              </div>
-            </div>
-
-            <div className="bg-[#0a0a0a] border border-[#1f1f1f] p-4 rounded-lg space-y-2">
+              <div className="bg-[#0a0a0a] border border-[#1f1f1f] p-4 rounded-lg space-y-2">
               <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider block">Bilješke i napomene</span>
               <p className="text-xs text-gray-300">{athlete.notes || 'Nema unesenih bilješki za ovog sportistu.'}</p>
             </div>

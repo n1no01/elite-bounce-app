@@ -8,8 +8,12 @@ async function handleLogin(formData: FormData) {
   'use server'
   const identifier = (formData.get('identifier') as string)?.trim()
   const passwordInput = (formData.get('password') as string)?.trim()
+  const rememberMe = formData.get('remember_me') === 'on'
 
   if (!identifier) return
+
+  // Definisanje trajanja kolačića: 30 dana ako je štiklirano, inače 7 dana
+  const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7
 
   // 1. Provjera da li je unesena admin lozinka (u polje za identifikaciju ili lozinku)
   if (identifier === process.env.ADMIN_PASSWORD || passwordInput === process.env.ADMIN_PASSWORD) {
@@ -17,7 +21,7 @@ async function handleLogin(formData: FormData) {
     cookieStore.set('admin_auth', 'true', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge,
       path: '/',
     })
     redirect('/admin')
@@ -26,13 +30,11 @@ async function handleLogin(formData: FormData) {
   // 2. Provjera prijave za sportistu (email + password iz baze)
   let result;
   if (passwordInput) {
-    // Ako je unesena i šifra, provjeri kombinaciju email/username i password
     result = await query<{ id: string }>(
       'SELECT id FROM athletes WHERE (email = $1 OR full_name ILIKE $1) AND password = $2', 
       [identifier.toLowerCase(), passwordInput]
     )
   } else {
-    // Ako je unesen samo email/identifier (fallback ako sportista nema šifru u bazi)
     result = await query<{ id: string }>(
       'SELECT id FROM athletes WHERE email = $1 OR full_name ILIKE $1', 
       [identifier.toLowerCase()]
@@ -42,12 +44,11 @@ async function handleLogin(formData: FormData) {
   if (result.rows.length > 0) {
     const athleteId = result.rows[0].id
     
-    // Postavi i kolačić za sportistu da ostane prijavljen (opcionalno ali korisno za portal)
     const cookieStore = await cookies()
     cookieStore.set('athlete_session', athleteId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge,
       path: '/',
     })
 
@@ -101,7 +102,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
             <h1 className="font-display text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
               DOBRODOŠLI
             </h1>
-        
           </div>
 
           {hasError && (
@@ -136,6 +136,17 @@ export default async function LoginPage({ searchParams }: PageProps) {
               />
             </div>
 
+            <div className="flex items-center justify-between text-xs font-mono pt-1">
+              <label className="flex items-center gap-2.5 cursor-pointer text-gray-300 select-none">
+                <input 
+                  type="checkbox" 
+                  name="remember_me"
+                  className="w-4 h-4 rounded bg-[#0a0a0a] border-[#1f1f1f] text-[#d4af37] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#d4af37]"
+                />
+                <span>Zapamti me (30 dana)</span>
+              </label>
+            </div>
+
             <button 
               type="submit"
               className="w-full bg-[#d4af37] text-black font-display text-xs font-bold uppercase tracking-widest py-3.5 rounded-lg hover:bg-yellow-600 transition-all shadow-lg shadow-[#d4af37]/10 mt-2 cursor-pointer"
@@ -143,11 +154,11 @@ export default async function LoginPage({ searchParams }: PageProps) {
               Prijavi se
             </button>
           </form>
-          {/* Dodaj ovo ispod zatvaranja </form> na login stranici */}
+
           <div className="mt-6 text-center text-xs text-gray-500 font-mono">
             Nemate nalog?{' '}
             <Link href="/register" className="text-[#d4af37] hover:underline">
-            Registrujte se ovdje
+              Registrujte se ovdje
             </Link>
           </div>
           

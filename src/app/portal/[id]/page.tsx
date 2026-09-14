@@ -183,7 +183,7 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
             <div>
               <h1 className="font-display text-2xl sm:text-4xl font-black uppercase tracking-tight text-white mt-1">
-                Dobrodošao, {athlete.full_name}
+                Dobrodošao/la, {athlete.full_name}
               </h1>
               <p className="text-gray-400 text-xs sm:text-sm mt-2 font-light max-w-xl">
                 Ovo je tvoj centralni hub za praćenje treninga, skokova i napretka. Prati propisane protokole i dominiraj na terenu.

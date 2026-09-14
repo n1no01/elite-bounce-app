@@ -346,7 +346,7 @@ export default function Home() {
         <section id="faq" className="py-24 bg-[#121212]/20 border-t border-[#1f1f1f] px-4 sm:px-6 scroll-mt-20 relative z-10">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-16">
-              <span className="text-[#d4af37] font-mono text-xs font-bold uppercase tracking-wider block mb-2">ČESTA PITANJA</span>
+              <span className="text-[#d4af37] font-mono text-xs font-bold uppercase tracking-wider block mb-2">ČESTO POSTAVLJENA PITANJA</span>
               <h2 className="font-display text-3xl md:text-5xl font-black uppercase tracking-tight">Savjeti i odgovori o treningu za vertikalni skok</h2>
               <p className="text-gray-400 text-sm mt-2">Sve što trebaš znati o treninzima eksplozivnosti prije nego što počnemo.</p>
             </div>
@@ -363,7 +363,7 @@ export default function Home() {
                       onClick={() => toggleFaq(index)}
                       className="w-full text-left p-6 flex items-center justify-between gap-4 focus:outline-none cursor-pointer"
                     >
-                      <span className="font-display font-bold text-sm sm:text-base uppercase text-white">
+                      <span className="font-display font-bold text-sm sm:text-base text-white">
                         {item.q}
                       </span>
                       <span className={`text-[#d4af37] font-mono text-xl transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>

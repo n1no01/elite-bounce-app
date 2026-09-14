@@ -300,9 +300,7 @@ export default async function AdminPage() {
                               {athlete.is_paid ? 'Uplaćeno 🟢' : 'Nije uplaćeno 🔴'}
                             </span>
                           </div>
-                          <div className="text-xs text-[#d4af37] font-mono mt-0.5">
-                            {athlete.sport || 'Opći'} • {athlete.gender} • {athlete.age} god.
-                          </div>
+                         
                         </div>
                         
                         <div className="flex items-center gap-2">
@@ -324,7 +322,7 @@ export default async function AdminPage() {
 
                       <details className="text-xs text-gray-400 pt-2 border-t border-[#1f1f1f]">
                         <summary className="cursor-pointer hover:text-[#d4af37] font-mono uppercase text-[10px] flex items-center justify-between">
-                          <span>Uredi podatke, lozinku i bilješke ⚙️</span>
+                          <span>Uredi podatke ⚙️</span>
                           <span className="text-gray-500">{athleteWorkouts.length} dodijeljenih treninga</span>
                         </summary>
                         
@@ -338,17 +336,6 @@ export default async function AdminPage() {
                             <div>
                               <label className="text-[10px] font-mono text-gray-500 uppercase">Sport</label>
                               <input type="text" name="sport" defaultValue={athlete.sport || ''} className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-white" />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="text-[10px] font-mono text-gray-500 uppercase">Email za prijavu</label>
-                              <input type="email" name="email" defaultValue={athlete.email || ''} className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-white" />
-                            </div>
-                            <div>
-                              <label className="text-[10px] font-mono text-gray-500 uppercase">Lozinka</label>
-                              <input type="text" name="password" defaultValue={athlete.password || ''} className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-white" />
                             </div>
                           </div>
 
@@ -371,10 +358,7 @@ export default async function AdminPage() {
                             <textarea name="notes" defaultValue={athlete.notes || ''} rows={2} className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-white" />
                           </div>
 
-                          <div className="flex items-center gap-2 pt-1">
-                            <input type="checkbox" name="isPaid" id={`isPaid_${athlete.id}`} defaultChecked={athlete.is_paid} className="w-3.5 h-3.5 accent-[#d4af37]" />
-                            <label htmlFor={`isPaid_${athlete.id}`} className="text-[10px] font-mono text-gray-300 uppercase cursor-pointer">Uplaćeno</label>
-                          </div>
+                      
                        
                           <button type="submit" className="w-full bg-[#d4af37] text-black font-bold py-2 rounded hover:bg-yellow-600 transition-colors uppercase text-[10px] cursor-pointer">
                             Sačuvaj Izmjene Sportiste
@@ -466,7 +450,7 @@ export default async function AdminPage() {
 
         {/* SEKCIJA 3: KREIRANJE TRENINGA */}
         <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl">
-          <h2 className="font-display text-xl font-bold uppercase mb-6 text-white">Dodijeli Trening po Sedmicama i Danima</h2>
+          <h2 className="font-display text-xl font-bold uppercase mb-6 text-white">Dodijeli Trening</h2>
           <form action={assignWorkout} className="space-y-6">
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

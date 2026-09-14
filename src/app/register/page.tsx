@@ -3,7 +3,22 @@ import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { query } from '../lib/db'
-import bcrypt from 'bcrypt'
+import dns from 'dns/promises'
+
+// Funkcija koja provjerava da li email domena stvarno postoji i prima mailove
+async function isValidEmailDomain(email: string): Promise<boolean> {
+  try {
+    const domain = email.split('@')[1]
+    if (!domain) return false
+
+    // Provjeri MX (Mail Exchange) zapise za domenu
+    const mxRecords = await dns.resolveMx(domain)
+    return Array.isArray(mxRecords) && mxRecords.length > 0
+  } catch {
+    // Ako DNS upit pukne (domena ne postoji), vrati false
+    return false
+  }
+}
 
 async function handleRegister(formData: FormData) {
   'use server'
@@ -17,7 +32,13 @@ async function handleRegister(formData: FormData) {
     redirect('/register?error=missing')
   }
 
-  // Izračunaj godine na osnovu datuma rođenja da bi zadovoljili 'age' kolonu
+  // 1. Validacija: Provjeri da li mail ima stvarnu domenu koja prima poštu
+  const isDomainValid = await isValidEmailDomain(email)
+  if (!isDomainValid) {
+    redirect('/register?error=invalid_domain')
+  }
+
+  // Izračunaj godine
   const birthDate = new Date(birthDateStr)
   const today = new Date()
   let age = today.getFullYear() - birthDate.getFullYear()
@@ -29,7 +50,7 @@ async function handleRegister(formData: FormData) {
   let athleteId: string
 
   try {
-    // 1. Provjeri da li sportista već postoji sa tim emailom
+    // 2. Provjeri da li sportista već postoji sa tim emailom
     const existing = await query<{ id: string }>(
       'SELECT id FROM athletes WHERE email = $1',
       [email]
@@ -39,13 +60,10 @@ async function handleRegister(formData: FormData) {
       redirect('/register?error=exists')
     }
 
-    // 2. Hesiraj lozinku
-    const hashedPassword = await bcrypt.hash(passwordInput, 10)
-
-    // 3. Ubaci novog korisnika u bazu uključujući age i gender
+    // 3. Ubaci novog korisnika u bazu sa čistom lozinkom (bez hesiranja)
     const result = await query<{ id: string }>(
       'INSERT INTO athletes (full_name, email, password, gender, age) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [fullName, email, hashedPassword, gender, age]
+      [fullName, email, passwordInput, gender, age]
     )
 
     athleteId = result.rows[0].id
@@ -126,6 +144,7 @@ export default async function RegisterPage({ searchParams }: PageProps) {
             <div className="mb-6 bg-red-950/40 border border-red-900/50 p-3 rounded-lg text-red-400 text-xs font-mono text-center">
               {errorType === 'exists' && 'Korisnik s ovim emailom već postoji.'}
               {errorType === 'missing' && 'Molimo popunite sva obavezna polja.'}
+              {errorType === 'invalid_domain' && 'Uneseni email koristi nevažeću ili nepostojeću domenu.'}
               {errorType === 'server' && 'Došlo je do greške. Pokušajte ponovo.'}
             </div>
           )}
@@ -139,7 +158,7 @@ export default async function RegisterPage({ searchParams }: PageProps) {
                 type="text" 
                 name="full_name"
                 required
-                placeholder="npr. Kenan Hodžić"
+                placeholder="npr. John Doe"
                 className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#d4af37] transition-colors"
               />
             </div>
@@ -152,7 +171,20 @@ export default async function RegisterPage({ searchParams }: PageProps) {
                 type="email" 
                 name="email"
                 required
-                placeholder="npr. sportista@domain.com"
+                placeholder="npr. imeprezime@gmail.com"
+                className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#d4af37] transition-colors"
+              />
+            </div>
+              
+            <div>
+              <label className="block text-xs font-mono uppercase tracking-wider text-gray-300 mb-2">
+                Lozinka
+              </label>
+              <input 
+                type="password" 
+                name="password"
+                required
+                placeholder="Kreiraj svoju šifru..."
                 className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#d4af37] transition-colors"
               />
             </div>
@@ -160,7 +192,7 @@ export default async function RegisterPage({ searchParams }: PageProps) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-mono uppercase tracking-wider text-gray-300 mb-2">
-                  Pol
+                  Spol
                 </label>
                 <select
                   name="gender"
@@ -183,19 +215,6 @@ export default async function RegisterPage({ searchParams }: PageProps) {
                   className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#d4af37] transition-colors [color-scheme:dark]"
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-gray-300 mb-2">
-                Lozinka
-              </label>
-              <input 
-                type="password" 
-                name="password"
-                required
-                placeholder="Kreiraj svoju šifru..."
-                className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#d4af37] transition-colors"
-              />
             </div>
 
             <button 

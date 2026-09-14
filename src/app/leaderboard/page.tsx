@@ -37,10 +37,9 @@ export default async function LeaderboardPage() {
         <header className="border-b border-[#1f1f1f] pb-6 flex items-center justify-between">
           <div>
             <span className="text-[#d4af37] font-mono text-xs font-bold uppercase tracking-widest">ELITE BOUNCE RANKING</span>
-            <h1 className="font-display text-3xl font-black uppercase text-white mt-1">Vertikalni Skokovi</h1>
           </div>
           <Link 
-            href="/skokovi" 
+            href="https://elitebounce.fit" 
             className="border border-[#1f1f1f] bg-[#121212] text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition-colors"
           >
             ← Nazad
@@ -50,7 +49,7 @@ export default async function LeaderboardPage() {
         {/* Tabela */}
         <div className="bg-[#121212] border border-[#1f1f1f] rounded-xl overflow-hidden">
           <div className="p-6 border-b border-[#1f1f1f] flex items-center justify-between">
-            <h2 className="font-display text-xl font-bold uppercase text-[#d4af37]">Najbolji vertikalni skokovi</h2>
+            <h2 className="font-display text-xl font-bold uppercase text-[#d4af37]">Najbolji Rezultati</h2>
             <span className="text-xs font-mono text-gray-500 uppercase">{records.length} takmičara</span>
           </div>
 
