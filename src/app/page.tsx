@@ -130,8 +130,8 @@ export default function Home() {
               <div className="text-[10px] sm:text-xs text-gray-500 font-mono uppercase tracking-wider">Generičkih šablona</div>
             </div>
             <div>
-              <div className="font-display text-3xl sm:text-4xl md:text-5xl font-black text-[#d4af37] mb-1">+8 do 12cm</div>
-              <div className="text-[10px] sm:text-xs text-gray-500 font-mono uppercase tracking-wider">Prosjek nakon 10 sedmica</div>
+              <div className="font-display text-3xl sm:text-4xl md:text-5xl font-black text-[#d4af37] mb-1 whitespace-nowrap">+8 do 12cm</div>
+              <div className="text-[10px] sm:text-xs text-gray-500 font-mono uppercase tracking-wider whitespace-nowrap">Prosjek nakon 10 sedmica</div>
             </div>
             <div>
               <div className="font-display text-3xl sm:text-4xl md:text-5xl font-black text-white mb-1">100%</div>
