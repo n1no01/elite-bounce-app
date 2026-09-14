@@ -100,7 +100,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
               ELITE BOUNCE
             </span>
             <h1 className="font-display text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
-              DOBRODOŠLI
+              PRIJAVI SE
             </h1>
           </div>
 
@@ -125,9 +125,12 @@ export default async function LoginPage({ searchParams }: PageProps) {
             </div>
 
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-gray-300 mb-2">
-                Lozinka
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-mono uppercase tracking-wider text-gray-300">
+                  Lozinka
+                </label>
+              
+              </div>
               <input 
                 type="password" 
                 name="password"
@@ -135,18 +138,12 @@ export default async function LoginPage({ searchParams }: PageProps) {
                 className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#d4af37] transition-colors"
               />
             </div>
-
-            <div className="flex items-center justify-between text-xs font-mono pt-1">
-              <label className="flex items-center gap-2.5 cursor-pointer text-gray-300 select-none">
-                <input 
-                  type="checkbox" 
-                  name="remember_me"
-                  className="w-4 h-4 rounded bg-[#0a0a0a] border-[#1f1f1f] text-[#d4af37] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#d4af37]"
-                />
-                <span>Zapamti me (30 dana)</span>
-              </label>
-            </div>
-
+              <Link 
+                  href="/forgot-password" 
+                  className="text-xs font-mono text-gray-400 hover:text-[#d4af37] transition-colors"
+                >
+                  Zaboravili ste lozinku?
+                </Link>
             <button 
               type="submit"
               className="w-full bg-[#d4af37] text-black font-display text-xs font-bold uppercase tracking-widest py-3.5 rounded-lg hover:bg-yellow-600 transition-all shadow-lg shadow-[#d4af37]/10 mt-2 cursor-pointer"

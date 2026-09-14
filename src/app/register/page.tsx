@@ -184,7 +184,7 @@ export default async function RegisterPage({ searchParams }: PageProps) {
                 type="password" 
                 name="password"
                 required
-                placeholder="Kreiraj svoju šifru..."
+                placeholder="Kreiraj svoju lozinku..."
                 className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#d4af37] transition-colors"
               />
             </div>
