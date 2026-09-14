@@ -36,7 +36,7 @@ export default async function LeaderboardPage() {
         {/* Header */}
         <header className="border-b border-[#1f1f1f] pb-6 flex items-center justify-between">
           <div>
-            <span className="text-[#d4af37] font-mono text-xs font-bold uppercase tracking-widest">ELITE BOUNCE LEADERBOARD</span>
+            <span className="text-[#d4af37] font-mono text-xs font-bold uppercase tracking-widest">ELITE BOUNCE RANKING</span>
             <h1 className="font-display text-3xl font-black uppercase text-white mt-1">Vertikalni Skokovi</h1>
           </div>
           <Link 
