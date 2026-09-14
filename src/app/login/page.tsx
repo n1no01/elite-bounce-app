@@ -143,7 +143,13 @@ export default async function LoginPage({ searchParams }: PageProps) {
               Prijavi se
             </button>
           </form>
-
+          {/* Dodaj ovo ispod zatvaranja </form> na login stranici */}
+          <div className="mt-6 text-center text-xs text-gray-500 font-mono">
+            Nemate nalog?{' '}
+            <Link href="/register" className="text-[#d4af37] hover:underline">
+            Registrujte se ovdje
+            </Link>
+          </div>
           
         </div>
       </main>

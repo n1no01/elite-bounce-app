@@ -161,7 +161,7 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
           <div className="flex items-center gap-4">
             <div className="text-right hidden md:block">
               <div className="text-sm font-bold text-white">{athlete.full_name}</div>
-              <div className="text-[11px] text-gray-400 font-mono">{athlete.sport || 'Elite Sportista'}</div>
+              <div className="text-[11px] text-gray-400 font-mono">{athlete.sport || ''}</div>
             </div>
             <Link 
               href="/login" 
@@ -188,15 +188,6 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
               <p className="text-gray-400 text-xs sm:text-sm mt-2 font-light max-w-xl">
                 Ovo je tvoj centralni hub za praćenje treninga, skokova i napretka. Prati propisane protokole i dominiraj na terenu.
               </p>
-            </div>
-
-            <div className="flex items-center gap-3 bg-[#0a0a0a] border border-[#1f1f1f] p-4 rounded-xl">
-              <div className="space-y-1 text-xs font-mono">
-                <div className="text-gray-400">PROFILNI PODACI:</div>
-                <div className="text-white"><strong className="text-[#d4af37]">Spol:</strong> {athlete.gender}</div>
-                <div className="text-white"><strong className="text-[#d4af37]">Godine:</strong> {athlete.age}</div>
-                {athlete.sport && <div className="text-white"><strong className="text-[#d4af37]">Sport:</strong> {athlete.sport}</div>}
-              </div>
             </div>
           </div>
 
