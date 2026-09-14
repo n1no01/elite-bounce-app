@@ -13,7 +13,6 @@ export const metadata: Metadata = {
     'vertikalni skok', 
     'testiranje sportista', 
     'kondicijski trener', 
-    'testiranje sportista', 
     'Approach Jump', 
     'Košarka',
     'Odbojka', 
@@ -23,7 +22,6 @@ export const metadata: Metadata = {
   authors: [{ name: 'Elite Bounce' }],
   creator: 'Elite Bounce',
   publisher: 'Elite Bounce',
-  // Ovdje će se automatski povući Vercel URL ili tvoja custom domena kad je postaviš
   metadataBase: new URL('https://elitebounce.fit'),
   openGraph: {
     title: 'Elite Bounce | Specijalizovani program za vertikalni skok u Sarajevu',
