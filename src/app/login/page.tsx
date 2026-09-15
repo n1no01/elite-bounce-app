@@ -118,7 +118,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
           <form action={handleLogin} className="space-y-5">
             <div>
               <label className="block text-xs font-mono uppercase tracking-wider text-gray-300 mb-2">
-                Email ili Ime
+                Email
               </label>
               <input 
                 type="text" 

@@ -256,7 +256,7 @@ export default async function AdminPage() {
               'use server'
               const cs = await cookies()
               cs.delete('admin_auth')
-              redirect('/admin/login')
+              redirect('/login')
             }}>
               <button type="submit" className="border border-[#1f1f1f] bg-[#121212] text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition-colors cursor-pointer">
                 Odjava
@@ -537,7 +537,7 @@ export default async function AdminPage() {
               <textarea name="exercisesText" rows={4} className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none font-mono text-xs" placeholder="A-Skips | Mehanika sprinta | 3 x 20m&#10;Depth Jumps | Minimalan kontakt | 4 x 4" />
             </div>
 
-            <button type="submit" className="bg-[#d4af37] tne-black font-display font-bold uppercase tracking-wider px-8 py-3 rounded hover:bg-yellow-600 transition-all text-xs cursor-pointer">
+            <button type="submit" className="bg-[#d4af37] text-black tne-black font-display font-bold uppercase tracking-wider px-8 py-3 rounded hover:bg-yellow-600 transition-all text-xs cursor-pointer">
               Objavi Trening za Izabranu Sedmicu
             </button>
           </form>
