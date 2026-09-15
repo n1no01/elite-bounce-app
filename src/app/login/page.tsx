@@ -12,10 +12,10 @@ async function handleLogin(formData: FormData) {
 
   if (!identifier) return
 
-  // Definisanje trajanja kolačića: 30 dana ako je štiklirano, inače 7 dana
+  // Trajanje kolačića: 30 dana ako je zapamćeno, inače 7 dana
   const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7
 
-  // 1. Provjera da li je unesena admin lozinka (u polje za identifikaciju ili lozinku)
+  // 1. Provjera admin lozinke
   if (identifier === process.env.ADMIN_PASSWORD || passwordInput === process.env.ADMIN_PASSWORD) {
     const cookieStore = await cookies()
     cookieStore.set('admin_auth', 'true', {
@@ -45,7 +45,9 @@ async function handleLogin(formData: FormData) {
     const athleteId = result.rows[0].id
     
     const cookieStore = await cookies()
-    cookieStore.set('athlete_session', athleteId, {
+    
+    // NAKON PRIJAVE: Postavljamo tačan naziv kolačića koji portal traži ('athlete_session_id')
+    cookieStore.set('athlete_session_id', athleteId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge,
@@ -113,7 +115,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
           <form action={handleLogin} className="space-y-5">
             <div>
               <label className="block text-xs font-mono uppercase tracking-wider text-gray-300 mb-2">
-                Email
+                Email ili Ime
               </label>
               <input 
                 type="text" 
@@ -129,7 +131,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
                 <label className="block text-xs font-mono uppercase tracking-wider text-gray-300">
                   Lozinka
                 </label>
-              
               </div>
               <input 
                 type="password" 
@@ -138,12 +139,20 @@ export default async function LoginPage({ searchParams }: PageProps) {
                 className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#d4af37] transition-colors"
               />
             </div>
+
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-xs font-mono text-gray-400 cursor-pointer">
+                <input type="checkbox" name="remember_me" className="rounded bg-[#0a0a0a] border-[#1f1f1f] text-[#d4af37] focus:ring-0" />
+                Zapamti me
+              </label>
               <Link 
-                  href="/forgot-password" 
-                  className="text-xs font-mono text-gray-400 hover:text-[#d4af37] transition-colors"
-                >
-                  Zaboravili ste lozinku?
-                </Link>
+                href="/forgot-password" 
+                className="text-xs font-mono text-gray-400 hover:text-[#d4af37] transition-colors"
+              >
+                Zaboravili ste lozinku?
+              </Link>
+            </div>
+
             <button 
               type="submit"
               className="w-full bg-[#d4af37] text-black font-display text-xs font-bold uppercase tracking-widest py-3.5 rounded-lg hover:bg-yellow-600 transition-all shadow-lg shadow-[#d4af37]/10 mt-2 cursor-pointer"
@@ -158,7 +167,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
               Registrujte se ovdje
             </Link>
           </div>
-          
         </div>
       </main>
 

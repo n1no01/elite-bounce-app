@@ -4,7 +4,7 @@ import { query } from '../../lib/db'
 import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
 import Image from 'next/image'
-import JumpProgressModal from '../../components/JumpProgressModal' // Pretpostavka da izdvojiš modal ili ga držiš unutar fajla
+import JumpProgressModal from '../../components/JumpProgressModal'
 
 interface Athlete {
   id: string
@@ -73,7 +73,24 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
   const resolvedSearchParams = await searchParams
   const selectedWeek = resolvedSearchParams.sedmica || 'Sedmica 1'
 
-  // 1. Dohvati podatke o sportisti
+  // =========================================================================
+  // KRITIČNA SIGURNOSNA PROVJERA (IDOR / BOLA FIX)
+  // =========================================================================
+  const cookieStore = await cookies()
+  const loggedInAthleteId = cookieStore.get('athlete_session_id')?.value
+
+  // Ako sportista nema aktivnu sesiju (nije prijavljen preko logina), pošalji ga na login
+  if (!loggedInAthleteId) {
+    redirect('/login')
+  }
+
+  // Ako je prijavljen, ali kroz URL pokušava pristupiti tuđem UUID-ju, preusmjeri ga na njegov profil
+  if (loggedInAthleteId !== id) {
+    redirect(`/portal/${loggedInAthleteId}`)
+  }
+  // =========================================================================
+
+  // 1. Dohvati podatke o sportisti (sada provjereno i sigurno)
   const athleteResult = await query<Athlete>('SELECT * FROM athletes WHERE id = $1', [id])
   if (athleteResult.rows.length === 0) {
     redirect('/login')
@@ -192,7 +209,7 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
               <div className="text-[11px] text-gray-400 font-mono">{athlete.sport || ''}</div>
             </div>
             <Link 
-              href="/login" 
+              href="/logout" 
               className="border border-[#1f1f1f] bg-[#121212] text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition-colors"
             >
               Odjava
