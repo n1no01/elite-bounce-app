@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ] # Pokreće se automatski kad god pošalješ kod na main granu
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -10,24 +10,21 @@ jobs:
 
     steps:
       - name: Checkout kod
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Postavi Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
       - name: Instaliraj zavisnosti
         run: npm install
 
-      - name: Instaliraj Capacitor CLI globalno (opcionalno)
-        run: npm install -g @capacitor/cli
-
       - name: Sinhronizuj Capacitor
         run: npx cap sync android
 
-      - name: Postavi Java Environment (potrebno za Android build)
-        uses: actions/setup-java@v3
+      - name: Postavi Java Environment
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -39,7 +36,7 @@ jobs:
           ./gradlew assembleDebug
 
       - name: Sačuvaj APK fajl kao artefakt
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
