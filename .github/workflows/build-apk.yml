@@ -20,8 +20,13 @@ jobs:
       - name: Instaliraj zavisnosti
         run: npm install
 
-      - name: Sinhronizuj Capacitor
-        run: npx cap sync android
+      - name: Instaliraj Capacitor CLI globalno
+        run: npm install -g @capacitor/cli @capacitor/android
+
+      - name: Dodaj Android platformu ako ne postoji i sinhronizuj
+        run: |
+          npx cap add android || true
+          npx cap sync android
 
       - name: Postavi Java Environment
         uses: actions/setup-java@v4
