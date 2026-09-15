@@ -15,8 +15,12 @@ async function handleLogin(formData: FormData) {
   // Trajanje kolačića: 30 dana ako je zapamćeno, inače 7 dana
   const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7
 
-  // 1. Provjera admin lozinke
-  if (identifier === process.env.ADMIN_PASSWORD || passwordInput === process.env.ADMIN_PASSWORD) {
+  // 1. Provjera admin prijave (preko posebnog admin user/pass ili env varijable)
+  if (
+    (identifier.toLowerCase() === 'admin' && passwordInput === 'elitebounceadmin') ||
+    identifier === process.env.ADMIN_PASSWORD || 
+    passwordInput === process.env.ADMIN_PASSWORD
+  ) {
     const cookieStore = await cookies()
     cookieStore.set('admin_auth', 'true', {
       httpOnly: true,
@@ -46,7 +50,6 @@ async function handleLogin(formData: FormData) {
     
     const cookieStore = await cookies()
     
-    // NAKON PRIJAVE: Postavljamo tačan naziv kolačića koji portal traži ('athlete_session_id')
     cookieStore.set('athlete_session_id', athleteId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
