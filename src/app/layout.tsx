@@ -50,7 +50,7 @@ export default function RootLayout({
   return (
     <html lang="bs" className="dark">
       <head>
-        {/* Favicon ili dodatni meta tagovi po potrebi */}
+        <link rel="manifest" href="../../public/manifest.json" />
       </head>
       <body className="bg-[#0a0a0a] text-[#f5f5f5] min-h-screen antialiased selection:bg-[#d4af37] selection:text-black">
         {children}
