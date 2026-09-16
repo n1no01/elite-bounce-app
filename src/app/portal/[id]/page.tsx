@@ -52,6 +52,21 @@ interface PageProps {
   searchParams: Promise<{ sedmica?: string }>
 }
 
+async function handleLogout() {
+  'use server'
+  const cookieStore = await cookies()
+  
+  // Brišemo kolačić tako što mu stavimo da odmah istekne (maxAge: 0)
+  cookieStore.set('athlete_session', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 0,
+    path: '/',
+  })
+
+  redirect('/login')
+}
+
 // Server akcija za ažuriranje pristupnih podataka (email i lozinka)
 async function updateCredentials(formData: FormData) {
   'use server'
@@ -200,12 +215,14 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
               <div className="text-sm font-bold text-white">{athlete.full_name}</div>
               <div className="text-[11px] text-gray-400 font-mono">{athlete.sport || ''}</div>
             </div>
-            <Link 
-              href="/login" 
-              className="border border-[#1f1f1f] bg-[#121212] text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition-colors"
-            >
-              Odjava
-            </Link>
+           <form action={handleLogout}>
+              <button 
+                type="submit"
+                className="border border-[#1f1f1f] bg-[#121212] text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition-colors cursor-pointer"
+              >
+                Odjava
+              </button>
+            </form>
           </div>
         </div>
       </header>
