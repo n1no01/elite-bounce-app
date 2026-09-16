@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Elite Bounce</string>
+    <string name="title_activity_main">Elite Bounce</string>
+    <string name="package_name">fit.elitebounce</string>
+    <string name="custom_url_scheme">fit.elitebounce</string>
+</resources>
