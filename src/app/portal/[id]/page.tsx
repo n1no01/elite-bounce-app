@@ -73,6 +73,15 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
   const resolvedSearchParams = await searchParams
   const selectedWeek = resolvedSearchParams.sedmica || 'Sedmica 1'
 
+  // --- SIGURNOSNA PROVJERA (SAMO VLASNIK NALOGA) ---
+  const cookieStore = await cookies()
+  const athleteCookie = cookieStore.get('athlete_session')
+
+  // Ako korisnik nije ulogovan, ili ID u kolačiću ne odgovara ID-ju u URL-u -> pravac login!
+  if (!athleteCookie || athleteCookie.value !== id) {
+    redirect('/login')
+  }
+
   // 1. Dohvati podatke o sportisti
   const athleteResult = await query<Athlete>('SELECT * FROM athletes WHERE id = $1', [id])
   if (athleteResult.rows.length === 0) {
@@ -308,6 +317,7 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
                 <Link
                   key={week}
                   href={`/portal/${id}?sedmica=${week}`}
+                  scroll={false}
                   className={`px-4 py-2.5 rounded-lg text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-all border cursor-pointer ${
                     isSelected 
                       ? 'bg-[#d4af37] text-black font-bold border-[#d4af37] shadow-lg shadow-[#d4af37]/10' 
@@ -316,7 +326,7 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
                         : 'bg-[#121212] text-gray-500 border-[#1f1f1f] hover:text-gray-300'
                   }`}
                 >
-                  {week} {hasWorkouts && '🔥'}
+                  {week}
                 </Link>
               )
             })}
