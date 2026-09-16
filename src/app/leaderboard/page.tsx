@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { query } from '../lib/db' // Prilagodi putanju do db fajla ako je drugačija
 import Link from 'next/link'
 
