@@ -57,11 +57,9 @@ async function handleLogout() {
   const cookieStore = await cookies()
   
   // Brišemo kolačić tako što mu stavimo da odmah istekne (maxAge: 0)
-  cookieStore.set('athlete_session', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 0,
-    path: '/',
+  cookieStore.delete({
+    name: 'athlete_session',
+    path: '/', // OBAVEZNO stavi isti path koji si koristio kad si kreirao kolačić
   })
 
   redirect('/login')
