@@ -60,12 +60,62 @@ async function deleteWorkout(formData: FormData) {
   revalidatePath(`/admin/athletes/${athleteId}`)
 }
 
+async function updateWorkout(formData: FormData) {
+  'use server'
+  const workoutId = formData.get('workoutId') as string
+  const athleteId = formData.get('athleteId') as string
+  const weekLabel = formData.get('weekLabel') as string
+  const phaseTitle = formData.get('phaseTitle') as string
+  const coachNotes = formData.get('coachNotes') as string
+  const exercisesText = formData.get('exercisesText') as string
+
+  if (!workoutId) return
+
+  // Automatsko parsiranje tekstualnih linija u strukturu vježbi
+  const exercises = exercisesText
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      const parts = line.split(' ')
+      // Ako zadnji dio liči na ponavljanja (npr. sadrži cifru ili 'x'), odvoj ga kao reps
+      if (parts.length > 1) {
+        const last = parts[parts.length - 1]
+        if (/\d/.test(last)) {
+          return {
+            name: parts.slice(0, -1).join(' '),
+            desc: '',
+            reps: last
+          }
+        }
+      }
+      return {
+        name: line,
+        desc: '',
+        reps: ''
+      }
+    })
+
+  await query(
+    `UPDATE workouts 
+     SET week_label = $1, phase_title = $2, coach_notes = $3, exercises = $4 
+     WHERE id = $5`,
+    [weekLabel, phaseTitle, coachNotes, JSON.stringify(exercises), workoutId]
+  )
+
+  revalidatePath(`/admin/athletes/${athleteId}`)
+  redirect(`/admin/athletes/${athleteId}`)
+}
+
 export default async function AthleteDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ editWorkoutId?: string }>
 }) {
   const { id } = await params
+  const { editWorkoutId } = await searchParams
 
   const cookieStore = await cookies()
   const authCookie = cookieStore.get('admin_auth')
@@ -92,6 +142,12 @@ export default async function AthleteDetailPage({
     [id]
   )
   const workouts = workoutsResult.rows
+  const editingWorkout = workouts.find(w => w.id === editWorkoutId)
+
+  // Priprema tekstualnog prikaza vježbi za textarea (naziv + reps u istom redu)
+  const initialExercisesText = editingWorkout && Array.isArray(editingWorkout.exercises)
+    ? editingWorkout.exercises.map(ex => ex.reps ? `${ex.name} ${ex.reps}` : ex.name).join('\n')
+    : ''
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f5f5f5] p-6 sm:p-10 font-sans">
@@ -113,7 +169,6 @@ export default async function AthleteDetailPage({
             <div>
               <span className="text-[#d4af37] font-mono text-xs font-bold uppercase tracking-widest">PROFIL SPORTISTE</span>
               <h1 className="font-display text-3xl font-black uppercase text-white mt-1">{athlete.full_name}</h1>
-            
             </div>
 
             <div className="flex items-center gap-3">
@@ -124,7 +179,7 @@ export default async function AthleteDetailPage({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-[#0a0a0a] border border-[#1f1f1f] p-4 rounded-lg space-y-2">
+            <div className="bg-[#0a0a0a] border border-[#1f1f1f] p-4 rounded-lg space-y-2">
               <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider block">Bilješke i napomene</span>
               <p className="text-xs text-gray-300">{athlete.notes || 'Nema unesenih bilješki za ovog sportistu.'}</p>
             </div>
@@ -190,13 +245,21 @@ export default async function AthleteDetailPage({
                       <span className="text-[#d4af37] font-mono text-[10px] uppercase font-bold tracking-wider">{w.week_label}</span>
                       <h3 className="text-white font-display font-bold text-base">{w.phase_title}</h3>
                     </div>
-                    <form action={deleteWorkout}>
-                      <input type="hidden" name="workoutId" value={w.id} />
-                      <input type="hidden" name="athleteId" value={athlete.id} />
-                      <button type="submit" className="text-red-400 hover:text-red-300 border border-red-900/40 bg-red-950/20 px-3 py-1 rounded cursor-pointer text-xs font-mono">
-                        Ukloni trening
-                      </button>
-                    </form>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/admin/athletes/${athlete.id}?editWorkoutId=${w.id}`}
+                        className="text-blue-400 hover:text-blue-300 border border-blue-900/40 bg-blue-950/20 px-3 py-1 rounded cursor-pointer text-xs font-mono"
+                      >
+                        Uredi
+                      </Link>
+                      <form action={deleteWorkout}>
+                        <input type="hidden" name="workoutId" value={w.id} />
+                        <input type="hidden" name="athleteId" value={athlete.id} />
+                        <button type="submit" className="text-red-400 hover:text-red-300 border border-red-900/40 bg-red-950/20 px-3 py-1 rounded cursor-pointer text-xs font-mono">
+                          Ukloni trening
+                        </button>
+                      </form>
+                    </div>
                   </div>
 
                   {w.coach_notes && (
@@ -225,6 +288,89 @@ export default async function AthleteDetailPage({
             </div>
           )}
         </div>
+
+        {/* Modal za Uređivanje Treninga */}
+        {editingWorkout && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+            <div className="bg-[#121212] border border-[#1f1f1f] p-6 rounded-xl max-w-2xl w-full space-y-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center border-b border-[#1f1f1f] pb-4">
+                <h3 className="font-display text-lg font-bold uppercase text-white">Uredi Trening</h3>
+                <Link 
+                  href={`/admin/athletes/${athlete.id}`}
+                  className="text-gray-400 hover:text-white font-mono text-xs"
+                >
+                  ✕ Zatvori
+                </Link>
+              </div>
+
+              <form action={updateWorkout} className="space-y-4">
+                <input type="hidden" name="workoutId" value={editingWorkout.id} />
+                <input type="hidden" name="athleteId" value={athlete.id} />
+
+                <div>
+                  <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Oznaka Sedmice (npr. Sedmica 1)</label>
+                  <input 
+                    type="text" 
+                    name="weekLabel" 
+                    defaultValue={editingWorkout.week_label} 
+                    required
+                    className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-xs text-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Naziv Faze / Treninga</label>
+                  <input 
+                    type="text" 
+                    name="phaseTitle" 
+                    defaultValue={editingWorkout.phase_title} 
+                    required
+                    className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-xs text-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Napomena Trenera</label>
+                  <textarea 
+                    name="coachNotes" 
+                    defaultValue={editingWorkout.coach_notes || ''} 
+                    rows={2}
+                    className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-xs text-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">
+                    Vježbe (Svaka u novi red, npr. Power Clean 4x3)
+                  </label>
+                  <textarea 
+                    name="exercisesText" 
+                    defaultValue={initialExercisesText} 
+                    rows={6}
+                    required
+                    className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-xs text-white font-mono whitespace-pre"
+                    placeholder="Power Clean 4x3&#10;Back Squat 4x4"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-[#1f1f1f]">
+                  <Link 
+                    href={`/admin/athletes/${athlete.id}`}
+                    className="px-4 py-2 rounded border border-[#1f1f1f] text-xs font-mono text-gray-400 hover:text-white"
+                  >
+                    Otkaži
+                  </Link>
+                  <button 
+                    type="submit"
+                    className="px-4 py-2 rounded bg-[#d4af37] text-black font-bold text-xs uppercase font-mono hover:bg-[#c29f30] cursor-pointer"
+                  >
+                    Sačuvaj izmjene
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
