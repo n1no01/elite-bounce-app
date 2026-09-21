@@ -16,6 +16,8 @@ interface Athlete {
   is_paid: boolean
   subscription_start_date: string | null
   created_at: string
+  squat_1rm: number | null
+  clean_1rm: number | null
 }
 
 interface JumpTest {
@@ -71,14 +73,12 @@ async function updateWorkout(formData: FormData) {
 
   if (!workoutId) return
 
-  // Automatsko parsiranje tekstualnih linija u strukturu vježbi
   const exercises = exercisesText
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean)
     .map(line => {
       const parts = line.split(' ')
-      // Ako zadnji dio liči na ponavljanja (npr. sadrži cifru ili 'x'), odvoj ga kao reps
       if (parts.length > 1) {
         const last = parts[parts.length - 1]
         if (/\d/.test(last)) {
@@ -105,6 +105,38 @@ async function updateWorkout(formData: FormData) {
 
   revalidatePath(`/admin/athletes/${athleteId}`)
   redirect(`/admin/athletes/${athleteId}`)
+}
+
+async function updateAthleteMaxes(formData: FormData) {
+  'use server'
+  const athleteId = formData.get('athleteId') as string
+  const squat1rm = formData.get('squat_1rm') ? Number(formData.get('squat_1rm')) : null
+  const clean1rm = formData.get('clean_1rm') ? Number(formData.get('clean_1rm')) : null
+
+  if (!athleteId) return
+
+  await query(
+    `UPDATE athletes SET squat_1rm = $1, clean_1rm = $2 WHERE id = $3`,
+    [squat1rm, clean1rm, athleteId]
+  )
+
+  revalidatePath(`/admin/athletes/${athleteId}`)
+}
+
+// Nova server akcija za ažuriranje bilješki
+async function updateAthleteNotes(formData: FormData) {
+  'use server'
+  const athleteId = formData.get('athleteId') as string
+  const notes = formData.get('notes') as string
+
+  if (!athleteId) return
+
+  await query(
+    `UPDATE athletes SET notes = $1 WHERE id = $2`,
+    [notes, athleteId]
+  )
+
+  revalidatePath(`/admin/athletes/${athleteId}`)
 }
 
 export default async function AthleteDetailPage({
@@ -144,7 +176,6 @@ export default async function AthleteDetailPage({
   const workouts = workoutsResult.rows
   const editingWorkout = workouts.find(w => w.id === editWorkoutId)
 
-  // Priprema tekstualnog prikaza vježbi za textarea (naziv + reps u istom redu)
   const initialExercisesText = editingWorkout && Array.isArray(editingWorkout.exercises)
     ? editingWorkout.exercises.map(ex => ex.reps ? `${ex.name} ${ex.reps}` : ex.name).join('\n')
     : ''
@@ -163,7 +194,7 @@ export default async function AthleteDetailPage({
           </Link>
         </div>
 
-        {/* Profil Sportiste - Info */}
+        {/* Profil Sportiste - Info, Bilješke i 1RM Sekcija */}
         <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1f1f1f] pb-6">
             <div>
@@ -179,10 +210,70 @@ export default async function AthleteDetailPage({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-[#0a0a0a] border border-[#1f1f1f] p-4 rounded-lg space-y-2">
-              <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider block">Bilješke i napomene</span>
-              <p className="text-xs text-gray-300">{athlete.notes || 'Nema unesenih bilješki za ovog sportistu.'}</p>
+            
+            {/* Forma za uređivanje Bilješki */}
+            <div className="bg-[#0a0a0a] border border-[#1f1f1f] p-4 rounded-lg space-y-3">
+              <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block font-bold">Bilješke i napomene</span>
+              <form action={updateAthleteNotes} className="space-y-3">
+                <input type="hidden" name="athleteId" value={athlete.id} />
+                <textarea 
+                  name="notes" 
+                  defaultValue={athlete.notes || ''} 
+                  rows={3}
+                  placeholder="Unesi bilješke o sportisti..."
+                  className="w-full bg-[#121212] border border-[#1f1f1f] rounded p-2 text-xs text-white font-mono"
+                />
+                <div className="flex justify-end">
+                  <button 
+                    type="submit"
+                    className="px-3 py-1.5 rounded bg-gray-800 border border-gray-700 text-gray-200 font-bold text-[11px] uppercase font-mono hover:bg-gray-700 cursor-pointer"
+                  >
+                    Sačuvaj bilješke
+                  </button>
+                </div>
+              </form>
             </div>
+
+            {/* Forma za unos 1RM (Zadnji čučanj i Nabacaj) */}
+            <div className="bg-[#0a0a0a] border border-[#1f1f1f] p-4 rounded-lg space-y-3">
+              <span className="text-[10px] font-mono text-[#d4af37] uppercase tracking-wider block font-bold">Maksimalne težine (1RM)</span>
+              <form action={updateAthleteMaxes} className="space-y-3">
+                <input type="hidden" name="athleteId" value={athlete.id} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Zadnji Čučanj (kg)</label>
+                    <input 
+                      type="number" 
+                      step="0.5"
+                      name="squat_1rm" 
+                      defaultValue={athlete.squat_1rm ?? ''} 
+                      placeholder="npr. 140"
+                      className="w-full bg-[#121212] border border-[#1f1f1f] rounded p-2 text-xs text-white font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Nabacaj (kg)</label>
+                    <input 
+                      type="number" 
+                      step="0.5"
+                      name="clean_1rm" 
+                      defaultValue={athlete.clean_1rm ?? ''} 
+                      placeholder="npr. 100"
+                      className="w-full bg-[#121212] border border-[#1f1f1f] rounded p-2 text-xs text-white font-mono"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <button 
+                    type="submit"
+                    className="px-3 py-1.5 rounded bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#d4af37] font-bold text-[11px] uppercase font-mono hover:bg-[#d4af37]/30 cursor-pointer"
+                  >
+                    Sačuvaj 1RM
+                  </button>
+                </div>
+              </form>
+            </div>
+
           </div>
         </div>
 

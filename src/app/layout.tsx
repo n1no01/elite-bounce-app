@@ -23,6 +23,30 @@ export const metadata: Metadata = {
   creator: 'Elite Bounce',
   publisher: 'Elite Bounce',
   metadataBase: new URL('https://elitebounce.fit'),
+  icons: {
+    icon: [
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    other: [
+      {
+        rel: 'icon',
+        url: '/android-chrome-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
+      },
+      {
+        rel: 'icon',
+        url: '/android-chrome-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+      },
+    ],
+  },
   openGraph: {
     title: 'Elite Bounce | Specijalizovani program za vertikalni skok u Sarajevu',
     description: 'Sistem za praćenje skokova i napretka sportista.',
@@ -50,7 +74,7 @@ export default function RootLayout({
   return (
     <html lang="bs" className="dark">
       <head>
-        {/* Favicon ili dodatni meta tagovi po potrebi */}
+        {/* Dodatni meta tagovi po potrebi */}
       </head>
       <body className="bg-[#0a0a0a] text-[#f5f5f5] min-h-screen antialiased selection:bg-[#d4af37] selection:text-black">
         {children}

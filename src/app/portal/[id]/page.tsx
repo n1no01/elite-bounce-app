@@ -211,7 +211,6 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
           <div className="flex items-center gap-4">
             <div className="text-right hidden md:block">
               <div className="text-sm font-bold text-white">{athlete.full_name}</div>
-              <div className="text-[11px] text-gray-400 font-mono">{athlete.sport || ''}</div>
             </div>
            <form action={handleLogout}>
               <button 
@@ -288,11 +287,6 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
               </p>
             </div>
           </div>
-          {athlete.notes && (
-            <div className="mt-6 pt-4 border-t border-[#1f1f1f] text-xs text-gray-300">
-              <strong className="text-[#d4af37] uppercase font-mono">Napomena trenera:</strong> {athlete.notes}
-            </div>
-          )}
         </div>
 
         {/* SEKCIJA 1: LIČNI REKORDI SA INTERAKTIVNIM MODALOM ZA GRAFIKON */}
