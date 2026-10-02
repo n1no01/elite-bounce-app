@@ -460,48 +460,19 @@ export default async function AdminPage() {
               </div>
             )}
 
-             {/* SEKCIJA: BIBLIOTEKA VJEŽBI (UPLOAD I PREGLED) */}
-        <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl space-y-6">
-          <div className="border-b border-[#1f1f1f] pb-4">
-            <span className="text-[#d4af37] font-mono text-xs uppercase tracking-wider">Video Biblioteka</span>
-            <h2 className="font-display text-xl font-bold uppercase text-white mt-1">Upravljanje Vježbama</h2>
-          </div>
+ {/* SEKCIJA: BIBLIOTEKA VJEŽBI (SAMO FORMA ZA DODAVANJE) */}
+<div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl space-y-6">
+  <div className="border-b border-[#1f1f1f] pb-4 flex items-center justify-between">
+    <div>
+      <span className="text-[#d4af37] font-mono text-xs uppercase tracking-wider">Video Biblioteka</span>
+      <h2 className="font-display text-xl font-bold uppercase text-white mt-1">Dodaj Novu Vježbu</h2>
+    </div>
+  </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Forma za upload */}
-            <div>
-              <h3 className="font-display text-sm font-bold uppercase text-gray-300 mb-4">Dodaj Novu Vježbu</h3>
-              <ExerciseUploadForm />
-            </div>
-
-            {/* Lista unesenih vježbi */}
-            <div>
-              <h3 className="font-display text-sm font-bold uppercase text-gray-300 mb-4">Sačuvane Vježbe ({exercises.length})</h3>
-              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-2">
-                {exercises.length === 0 ? (
-                  <p className="text-gray-500 text-xs italic">Nema unesenih vježbi u biblioteci.</p>
-                ) : (
-                  exercises.map((ex) => (
-                    <div key={ex.id} className="bg-[#0a0a0a] border border-[#1f1f1f] p-3 rounded flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                      <div className="space-y-1">
-                        <h4 className="font-bold text-white text-sm">{ex.title}</h4>
-                        {ex.description && <p className="text-gray-400 text-xs">{ex.description}</p>}
-                      </div>
-
-                      <div className="w-full sm:w-auto flex-shrink-0">
-                        <video 
-                          src={ex.video_url} 
-                          controls 
-                          className="w-full sm:w-36 h-20 object-contain rounded border border-[#1f1f1f] bg-black"
-                        />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+  <div className="max-w-xl">
+    <ExerciseUploadForm />
+  </div>
+</div>
           </div>
         </div>
       </div>
