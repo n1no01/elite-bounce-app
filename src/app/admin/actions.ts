@@ -4,9 +4,6 @@ import { query } from '../lib/db'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
-import { unlink } from 'fs/promises'
 
 interface WorkoutExercise {
   name: string
@@ -14,9 +11,17 @@ interface WorkoutExercise {
   reps: string
 }
 
+// 1. POPRAVLJENA ODJAVA ADMINA (Garantovano briše cookie)
 export async function logoutAdmin() {
   const cs = await cookies()
+  
+  // Eksplicitno obriši i postavi istekao rok sa putanjom '/'
   cs.delete('admin_auth')
+  cs.set('admin_auth', '', {
+    expires: new Date(0),
+    path: '/',
+  })
+
   redirect('/admin/login')
 }
 
@@ -107,7 +112,6 @@ export async function assignWorkout(formData: FormData) {
   revalidatePath('/admin')
 }
 
-// Dodano ažuriranje treninga
 export async function updateWorkout(formData: FormData) {
   const workoutId = formData.get('workoutId') as string
   const weekLabel = formData.get('weekLabel') as string
@@ -225,20 +229,4 @@ export async function deleteExercise(formData: FormData) {
   } catch (error) {
     console.error('Greška pri brisanju vježbe:', error)
   }
-}
-
-function getYouTubeEmbedUrl(url: string) {
-  if (!url) return null
-  
-  // Ako je obični watch link: youtube.com/watch?v=ID
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
-  const match = url.match(regExp)
-
-  if (match && match[2].length === 11) {
-    // Dodajemo parametre da sakrijemo preporuke i naslove koliko je moguće
-    return `https://www.youtube.com/embed/${match[2]}?modestbranding=1&rel=0`
-  }
-
-  // Ako nije YouTube (npr. ostao stari mp4 link), vrati original
-  return url
 }

@@ -56,10 +56,13 @@ async function handleLogout() {
   'use server'
   const cookieStore = await cookies()
   
-  // Brišemo kolačić tako što mu stavimo da odmah istekne (maxAge: 0)
-  cookieStore.delete({
-    name: 'athlete_session',
-    path: '/', // OBAVEZNO stavi isti path koji si koristio kad si kreirao kolačić
+  // 1. Obriši kolačić
+  cookieStore.delete('athlete_session')
+
+  // 2. Eksplicitno pregazi kolačić isteklim rokom na glavnoj putanji '/'
+  cookieStore.set('athlete_session', '', {
+    expires: new Date(0),
+    path: '/',
   })
 
   redirect('/login')
