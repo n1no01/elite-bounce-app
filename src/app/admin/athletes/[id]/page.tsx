@@ -252,7 +252,7 @@ export default async function AthleteDetailPage({
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Nabacaj (kg)</label>
+                    <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Nabačaj (kg)</label>
                     <input 
                       type="number" 
                       step="0.5"

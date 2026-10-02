@@ -4,6 +4,7 @@ import { query } from '../lib/db'
 import Link from 'next/link'
 import { DeleteAthleteButton } from './DeleteAthleteButton'
 import { WorkoutsManager } from './WorkoutsManager'
+import { ExerciseUploadForm } from './ExerciseUploadForm'
 import { 
   logoutAdmin, 
   addAthlete, 
@@ -53,6 +54,14 @@ interface Notification {
   created_at: string
 }
 
+interface Exercise {
+  id: string
+  title: string
+  description: string | null
+  video_url: string
+  created_at: string
+}
+
 export default async function AdminPage() {
   const cookieStore = await cookies()
   const authCookie = cookieStore.get('admin_auth')
@@ -75,6 +84,14 @@ export default async function AdminPage() {
     notifications = []
   }
 
+  let exercises: Exercise[] = []
+  try {
+    const exercisesResult = await query<Exercise>('SELECT * FROM exercises ORDER BY created_at DESC')
+    exercises = exercisesResult.rows
+  } catch (e) {
+    exercises = []
+  }
+
   const todayDateString = new Date().toISOString().split('T')[0]
 
   return (
@@ -90,6 +107,12 @@ export default async function AdminPage() {
           
           <div className="flex items-center gap-3">
             <Link 
+              href="/exercises" 
+              className="border border-[#1f1f1f] bg-[#121212] text-gray-300 hover:text-white text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition-colors"
+            >
+              Biblioteka Vježbi ↗
+            </Link>
+            <Link 
               href="/leaderboard" 
               target="_blank" 
               className="border border-[#d4af37]/40 bg-[#d4af37]/10 text-[#d4af37] hover:bg-[#d4af37]/20 text-xs font-bold uppercase tracking-wider px-4 py-2 rounded transition-colors"
@@ -104,6 +127,8 @@ export default async function AdminPage() {
             </form>
           </div>
         </header>
+
+       
 
         {/* SEKCIJA 1: DODAVANJE I LISTA SPORTISTA */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -242,7 +267,7 @@ export default async function AdminPage() {
                             <label className="text-[10px] font-mono text-gray-500 uppercase">Bilješke</label>
                             <textarea name="notes" defaultValue={athlete.notes || ''} rows={2} className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-white" />
                           </div>
-                       
+                        
                           <button type="submit" className="w-full bg-[#d4af37] text-black font-bold py-2 rounded hover:bg-yellow-600 transition-colors uppercase text-[10px] cursor-pointer">
                             Sačuvaj Izmjene Sportiste
                           </button>
@@ -307,7 +332,7 @@ export default async function AdminPage() {
             </div>
           </form>
         </div>
-      
+
         {/* SEKCIJA 4: KREIRANJE TRENINGA */}
         <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl">
           <h2 className="font-display text-xl font-bold uppercase mb-6 text-white">Dodijeli Trening</h2>
@@ -434,6 +459,49 @@ export default async function AdminPage() {
                 })}
               </div>
             )}
+
+             {/* SEKCIJA: BIBLIOTEKA VJEŽBI (UPLOAD I PREGLED) */}
+        <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl space-y-6">
+          <div className="border-b border-[#1f1f1f] pb-4">
+            <span className="text-[#d4af37] font-mono text-xs uppercase tracking-wider">Video Biblioteka</span>
+            <h2 className="font-display text-xl font-bold uppercase text-white mt-1">Upravljanje Vježbama</h2>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Forma za upload */}
+            <div>
+              <h3 className="font-display text-sm font-bold uppercase text-gray-300 mb-4">Dodaj Novu Vježbu</h3>
+              <ExerciseUploadForm />
+            </div>
+
+            {/* Lista unesenih vježbi */}
+            <div>
+              <h3 className="font-display text-sm font-bold uppercase text-gray-300 mb-4">Sačuvane Vježbe ({exercises.length})</h3>
+              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-2">
+                {exercises.length === 0 ? (
+                  <p className="text-gray-500 text-xs italic">Nema unesenih vježbi u biblioteci.</p>
+                ) : (
+                  exercises.map((ex) => (
+                    <div key={ex.id} className="bg-[#0a0a0a] border border-[#1f1f1f] p-3 rounded flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                      <div className="space-y-1">
+                        <h4 className="font-bold text-white text-sm">{ex.title}</h4>
+                        {ex.description && <p className="text-gray-400 text-xs">{ex.description}</p>}
+                      </div>
+
+                      <div className="w-full sm:w-auto flex-shrink-0">
+                        <video 
+                          src={ex.video_url} 
+                          controls 
+                          className="w-full sm:w-36 h-20 object-contain rounded border border-[#1f1f1f] bg-black"
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
           </div>
         </div>
       </div>

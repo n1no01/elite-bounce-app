@@ -4,6 +4,9 @@ import { query } from '../lib/db'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { writeFile, mkdir } from 'fs/promises'
+import path from 'path'
+import { unlink } from 'fs/promises'
 
 interface WorkoutExercise {
   name: string
@@ -188,4 +191,54 @@ export async function deleteNotification(formData: FormData) {
 
   await query('DELETE FROM notifications WHERE id = $1', [notificationId])
   revalidatePath('/admin')
+}
+
+export async function addExercise(formData: FormData) {
+  const title = formData.get('title') as string
+  const description = formData.get('description') as string
+  const videoUrl = formData.get('videoUrl') as string
+
+  if (!title || !videoUrl) return
+
+  try {
+    await query(
+      'INSERT INTO exercises (title, description, video_url) VALUES ($1, $2, $3)',
+      [title, description, videoUrl]
+    )
+    
+    revalidatePath('/admin')
+    revalidatePath('/exercises')
+  } catch (error) {
+    console.error('Greška pri spašavanju vježbe:', error)
+  }
+}
+
+export async function deleteExercise(formData: FormData) {
+  const exerciseId = formData.get('exerciseId') as string
+  
+  if (!exerciseId) return
+
+  try {
+    await query('DELETE FROM exercises WHERE id = $1', [exerciseId])
+    revalidatePath('/exercises')
+    revalidatePath('/admin')
+  } catch (error) {
+    console.error('Greška pri brisanju vježbe:', error)
+  }
+}
+
+function getYouTubeEmbedUrl(url: string) {
+  if (!url) return null
+  
+  // Ako je obični watch link: youtube.com/watch?v=ID
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
+  const match = url.match(regExp)
+
+  if (match && match[2].length === 11) {
+    // Dodajemo parametre da sakrijemo preporuke i naslove koliko je moguće
+    return `https://www.youtube.com/embed/${match[2]}?modestbranding=1&rel=0`
+  }
+
+  // Ako nije YouTube (npr. ostao stari mp4 link), vrati original
+  return url
 }
