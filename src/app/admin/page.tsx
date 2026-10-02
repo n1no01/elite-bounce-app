@@ -128,8 +128,6 @@ export default async function AdminPage() {
           </div>
         </header>
 
-       
-
         {/* SEKCIJA 1: DODAVANJE I LISTA SPORTISTA */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
@@ -287,7 +285,7 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        {/* SEKCIJA 3: UNOS POJEDINAČNOG TESTA SKOKA */}
+        {/* SEKCIJA 2: UNOS POJEDINAČNOG TESTA SKOKA */}
         <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl space-y-6">
           <div className="border-b border-[#1f1f1f] pb-4">
             <h2 className="font-display text-xl font-bold uppercase text-white mt-1">Dodaj Test Skoka</h2>
@@ -333,7 +331,7 @@ export default async function AdminPage() {
           </form>
         </div>
 
-        {/* SEKCIJA 4: KREIRANJE TRENINGA */}
+        {/* SEKCIJA 3: KREIRANJE TRENINGA */}
         <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl">
           <h2 className="font-display text-xl font-bold uppercase mb-6 text-white">Dodijeli Trening</h2>
           <form action={assignWorkout} className="space-y-6">
@@ -384,7 +382,7 @@ export default async function AdminPage() {
           </form>
         </div>
           
-        {/* SEKCIJA 2: SLANJE OBAVJEŠTENJA */}
+        {/* SEKCIJA 4: SLANJE OBAVJEŠTENJA */}
         <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl space-y-6">
           <div className="border-b border-[#1f1f1f] pb-4 flex items-center justify-between">
             <div>
@@ -459,22 +457,30 @@ export default async function AdminPage() {
                 })}
               </div>
             )}
-
- {/* SEKCIJA: BIBLIOTEKA VJEŽBI (SAMO FORMA ZA DODAVANJE) */}
-<div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl space-y-6">
-  <div className="border-b border-[#1f1f1f] pb-4 flex items-center justify-between">
-    <div>
-      <span className="text-[#d4af37] font-mono text-xs uppercase tracking-wider">Video Biblioteka</span>
-      <h2 className="font-display text-xl font-bold uppercase text-white mt-1">Dodaj Novu Vježbu</h2>
-    </div>
-  </div>
-
-  <div className="max-w-xl">
-    <ExerciseUploadForm />
-  </div>
-</div>
           </div>
         </div>
+
+        {/* SEKCIJA 5: BIBLIOTEKA VJEŽBI (FORMA ZA DODAVANJE) */}
+        <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl space-y-6">
+          <div className="border-b border-[#1f1f1f] pb-4 flex items-center justify-between">
+            <div>
+              <span className="text-[#d4af37] font-mono text-xs uppercase tracking-wider">Video Biblioteka</span>
+              <h2 className="font-display text-xl font-bold uppercase text-white mt-1">Dodaj Novu Vježbu</h2>
+            </div>
+            
+            <Link 
+              href="/exercises" 
+              className="border border-[#1f1f1f] bg-[#0a0a0a] text-gray-300 hover:text-white text-xs font-mono px-3 py-1.5 rounded transition-colors"
+            >
+              Pregledaj sve ({exercises.length}) ↗
+            </Link>
+          </div>
+
+          <div className="max-w-xl">
+            <ExerciseUploadForm />
+          </div>
+        </div>
+
       </div>
     </div>
   )
