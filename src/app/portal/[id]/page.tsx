@@ -4,7 +4,8 @@ import { query } from '../../lib/db'
 import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
 import Image from 'next/image'
-import JumpProgressModal from '../../components/JumpProgressModal' // Pretpostavka da izdvojiš modal ili ga držiš unutar fajla
+import JumpProgressModal from '../../components/JumpProgressModal'
+import bcrypt from 'bcryptjs'
 
 interface Athlete {
   id: string
@@ -55,16 +56,11 @@ interface PageProps {
 async function handleLogout() {
   'use server'
   const cookieStore = await cookies()
-  
-  // 1. Obriši kolačić
   cookieStore.delete('athlete_session')
-
-  // 2. Eksplicitno pregazi kolačić isteklim rokom na glavnoj putanji '/'
   cookieStore.set('athlete_session', '', {
     expires: new Date(0),
     path: '/',
   })
-
   redirect('/login')
 }
 
@@ -72,73 +68,70 @@ async function handleLogout() {
 async function updateCredentials(formData: FormData) {
   'use server'
   const athleteId = formData.get('athleteId') as string
-  const email = formData.get('email') as string || null
-  const password = formData.get('password') as string || null
+  const email = (formData.get('email') as string) || null
+  const newPassword = (formData.get('password') as string) || null
 
   if (!athleteId) return
 
-  await query(
-    'UPDATE athletes SET email = $1, password = $2 WHERE id = $3',
-    [email, password, athleteId]
-  )
+  // Ako je korisnik unio novu lozinku, heširaj je prije spremanja
+  if (newPassword && newPassword.trim() !== '') {
+    // 10 je broj "salt rundi" (sigurni standard)
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+    await query(
+      'UPDATE athletes SET email = $1, password = $2 WHERE id = $3',
+      [email, hashedPassword, athleteId]
+    )
+  } else {
+    // Ako polje za lozinku ostane prazno, ažuriraj samo email
+    await query(
+      'UPDATE athletes SET email = $1 WHERE id = $2',
+      [email, athleteId]
+    )
+  }
+
   revalidatePath(`/portal/${athleteId}`)
 }
 
 export default async function AthletePortalPage({ params, searchParams }: PageProps) {
   const { id } = await params
   const resolvedSearchParams = await searchParams
-  const selectedWeek = resolvedSearchParams.sedmica || 'Sedmica 1'
 
   // --- SIGURNOSNA PROVJERA (SAMO VLASNIK NALOGA) ---
   const cookieStore = await cookies()
   const athleteCookie = cookieStore.get('athlete_session')
 
-  // Ako korisnik nije ulogovan, ili ID u kolačiću ne odgovara ID-ju u URL-u -> pravac login!
   if (!athleteCookie || athleteCookie.value !== id) {
     redirect('/login')
   }
 
-  // 1. Dohvati podatke o sportisti
-  const athleteResult = await query<Athlete>('SELECT * FROM athletes WHERE id = $1', [id])
-  if (athleteResult.rows.length === 0) {
+  // Automatsko brisanje starih treninga (može ići asinhrono bez čekanja ili u cron job)
+  query('DELETE FROM workouts WHERE athlete_id = $1 AND created_at < NOW() - INTERVAL \'30 days\'', [id]).catch(console.error)
+
+  // PARALELNO DOHVATANJE PODATAKA IZ BAZE (Znatno brže učitavanje)
+  const [athleteRes, workoutsRes, testsRes, notifRes] = await Promise.all([
+    query<Athlete>('SELECT * FROM athletes WHERE id = $1', [id]),
+    query<Workout>('SELECT * FROM workouts WHERE athlete_id = $1 ORDER BY created_at DESC', [id]),
+    query<JumpTestRecord>('SELECT * FROM jump_tests WHERE athlete_id = $1 ORDER BY created_at ASC', [id]).catch(() => ({ rows: [] })),
+    query<Notification>('SELECT * FROM notifications WHERE athlete_id = $1 OR athlete_id IS NULL ORDER BY created_at DESC', [id]).catch(() => ({ rows: [] }))
+  ])
+
+  if (athleteRes.rows.length === 0) {
     redirect('/login')
   }
-  const athlete = athleteResult.rows[0]
 
-  // 2. Automatsko brisanje treninga starijih od 30 dana
-  await query('DELETE FROM workouts WHERE athlete_id = $1 AND created_at < NOW() - INTERVAL \'30 days\'', [id])
+  const athlete = athleteRes.rows[0]
+  const allWorkouts = workoutsRes.rows
+  const jumpTests = testsRes.rows
+  const notifications = notifRes.rows
 
-  // 3. Dohvati preostale treninge za ovog sportistu
-  const workoutsResult = await query<Workout>('SELECT * FROM workouts WHERE athlete_id = $1 ORDER BY created_at DESC', [id])
-  const allWorkouts = workoutsResult.rows
+  // Dinamičko sakupljanje dostpnih sedmica iz treninga
+  const extractedWeeks = Array.from(new Set(allWorkouts.map(w => w.week_label))).filter(Boolean)
+  const defaultWeeks = ['Sedmica 1', 'Sedmica 2', 'Sedmica 3', 'Sedmica 4']
+  const weeks = Array.from(new Set([...defaultWeeks, ...extractedWeeks]))
 
-  // Filtriraj treninge za izabranu sedmicu
+  const selectedWeek = resolvedSearchParams.sedmica || weeks[0] || 'Sedmica 1'
   const currentWeekWorkouts = allWorkouts.filter(w => w.week_label === selectedWeek)
-
-  // 4. Dohvati pojedinačne testove skokova iz tabele jump_tests
-  let jumpTests: JumpTestRecord[] = []
-  try {
-    const testsResult = await query<JumpTestRecord>(
-      'SELECT * FROM jump_tests WHERE athlete_id = $1 ORDER BY created_at ASC',
-      [id]
-    )
-    jumpTests = testsResult.rows
-  } catch (e) {
-    console.error("GREŠKA PRI DOHVATANJU TESTOVA SKOKOVA:", e)
-    jumpTests = []
-  }
-
-  // 5. Dohvati obavještenja za sportistu (Lična + Globalna gdje je athlete_id IS NULL)
-  let notifications: Notification[] = []
-  try {
-    const notifResult = await query<Notification>(
-      'SELECT * FROM notifications WHERE athlete_id = $1 OR athlete_id IS NULL ORDER BY created_at DESC',
-      [id]
-    )
-    notifications = notifResult.rows
-  } catch (e) {
-    notifications = []
-  }
 
   // Definicija tipova skokova koji se prate
   const supportedTestTypes = [
@@ -163,7 +156,6 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
       }
     }
 
-    // Priprema historije za Recharts (datum + vrijednost)
     const history = matchingTests.map(t => ({
       date: new Date(t.created_at).toLocaleDateString('bs-BA', { day: '2-digit', month: '2-digit', year: '2-digit' }),
       value: Number(t.value)
@@ -184,61 +176,55 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
 
   const hasAnyBest = bestMetrics.some(m => m.val !== null)
 
-  // Lista svih dostupnih sedmica
-  const weeks = [
-    'Sedmica 1', 'Sedmica 2', 'Sedmica 3', 'Sedmica 4'
-  ]
-
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f5f5f5] flex flex-col justify-between selection:bg-[#d4af37] selection:text-black font-sans">
       
-  {/* NAVIGACIJA PORTALA */}
-<header className="w-full border-b border-[#1f1f1f] bg-[#0a0a0a]/90 backdrop-blur-md sticky top-0 z-50">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-    <div className="flex items-center gap-4 sm:gap-6">
-      <Link href="/" className="flex items-center group py-2">
-        <Image 
-          src="/logo.png" 
-          alt="Elite Bounce Logo" 
-          width={300} 
-          height={100} 
-          priority 
-          className="h-12 w-auto object-contain"
-        />
-      </Link>
-      <span className="hidden lg:inline-block text-[#d4af37] font-mono text-[10px] font-bold tracking-widest bg-[#d4af37]/10 px-2.5 py-1 rounded border border-[#d4af37]/20">
-        ATHLETE PORTAL
-      </span>
-    </div>
+      {/* NAVIGACIJA PORTALA */}
+      <header className="w-full border-b border-[#1f1f1f] bg-[#0a0a0a]/90 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Link href="/" className="flex items-center group py-2">
+              <Image 
+                src="/logo.png" 
+                alt="Elite Bounce Logo" 
+                width={300} 
+                height={100} 
+                priority 
+                className="h-12 w-auto object-contain"
+              />
+            </Link>
+            <span className="hidden lg:inline-block text-[#d4af37] font-mono text-[10px] font-bold tracking-widest bg-[#d4af37]/10 px-2.5 py-1 rounded border border-[#d4af37]/20">
+              ATHLETE PORTAL
+            </span>
+          </div>
 
-    {/* LINKOVI SA IDENTIČNIM STAJLINGOM KAO U ADMIN PANELU */}
-    <div className="flex items-center gap-3">
-      <Link 
-        href="/leaderboard" 
-        target="_blank" 
-        className="border border-[#d4af37]/40 bg-[#d4af37]/10 text-[#d4af37] hover:bg-[#d4af37]/20 text-xs font-bold uppercase tracking-wider px-3 sm:px-4 py-2 rounded transition-colors"
-      >
-        Tabela ↗
-      </Link>
+          <div className="flex items-center gap-3">
+            <Link 
+              href="/leaderboard" 
+              target="_blank" 
+              className="border border-[#d4af37]/40 bg-[#d4af37]/10 text-[#d4af37] hover:bg-[#d4af37]/20 text-xs font-bold uppercase tracking-wider px-3 sm:px-4 py-2 rounded transition-colors"
+            >
+              Tabela ↗
+            </Link>
 
-      <Link 
-        href="/exercises" 
-        className="border border-[#1f1f1f] bg-[#121212] text-gray-300 hover:text-white text-xs font-bold uppercase tracking-wider px-3 sm:px-4 py-2 rounded transition-colors"
-      >
-        Vježbe ↗
-      </Link>
+            <Link 
+              href="/exercises" 
+              className="border border-[#1f1f1f] bg-[#121212] text-gray-300 hover:text-white text-xs font-bold uppercase tracking-wider px-3 sm:px-4 py-2 rounded transition-colors"
+            >
+              Vježbe ↗
+            </Link>
 
-      <form action={handleLogout}>
-        <button 
-          type="submit"
-          className="border border-[#1f1f1f] bg-[#121212] text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider px-3 sm:px-4 py-2 rounded transition-colors cursor-pointer"
-        >
-          Odjava
-        </button>
-      </form>
-    </div>
-  </div>
-</header>
+            <form action={handleLogout}>
+              <button 
+                type="submit"
+                className="border border-[#1f1f1f] bg-[#121212] text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider px-3 sm:px-4 py-2 rounded transition-colors cursor-pointer"
+              >
+                Odjava
+              </button>
+            </form>
+          </div>
+        </div>
+      </header>
 
       {/* GLAVNI SADRŽAJ */}
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
@@ -273,7 +259,7 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                     <h3 className="font-display font-bold text-base sm:text-lg text-[#d4af37] flex items-center gap-2">
-                    {notif.title}
+                      {notif.title}
                     </h3>
                     <span className="text-[10px] font-mono text-gray-400">
                       {new Date(notif.created_at).toLocaleDateString('bs-BA', {
@@ -375,7 +361,7 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
                   exercises = typeof workout.exercises === 'string' 
                     ? JSON.parse(workout.exercises) 
                     : workout.exercises || []
-                } catch (e) {
+                } catch {
                   exercises = []
                 }
 
@@ -454,12 +440,10 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
               />
             </div>
             <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Nova lozinka</label>
+              <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Nova lozinka (ostavi prazno ako ne mijenjaš)</label>
               <input 
-                type="text" 
+                type="password" 
                 name="password" 
-                defaultValue={athlete.password || ''} 
-                required 
                 className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg p-3 text-sm text-white focus:border-[#d4af37] outline-none" 
                 placeholder="Unesi novu lozinku"
               />

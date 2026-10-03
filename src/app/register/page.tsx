@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { query } from '../lib/db'
 import dns from 'dns/promises'
+import bcrypt from 'bcryptjs'
 
 // Funkcija koja provjerava da li email domena stvarno postoji i prima mailove
 async function isValidEmailDomain(email: string): Promise<boolean> {
@@ -60,15 +61,18 @@ async function handleRegister(formData: FormData) {
       redirect('/register?error=exists')
     }
 
-    // 3. Ubaci novog korisnika u bazu sa čistom lozinkom (bez hesiranja)
+    // 3. Heširanje lozinke prije upisa u bazu
+    const hashedPassword = await bcrypt.hash(passwordInput, 10)
+
+    // 4. Ubaci novog korisnika u bazu sa heširanom lozinkom
     const result = await query<{ id: string }>(
       'INSERT INTO athletes (full_name, email, password, gender, age) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [fullName, email, passwordInput, gender, age]
+      [fullName, email, hashedPassword, gender, age]
     )
 
     athleteId = result.rows[0].id
 
-    // 4. Postavi kolačić
+    // 5. Postavi kolačić
     const cookieStore = await cookies()
     cookieStore.set('athlete_session', athleteId, {
       httpOnly: true,

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { query } from '../lib/db'
+import bcrypt from 'bcryptjs'
 
 async function handleLogin(formData: FormData) {
   'use server'
@@ -25,38 +26,48 @@ async function handleLogin(formData: FormData) {
       path: '/',
       maxAge: 60 * 60 * 24 * 7 // 7 dana
     })
-    redirect('/admin') // Preusmjerava te direktno na admin panel!
+    redirect('/admin')
   }
 
-  // 2. Provjera prijave za sportistu (email + password iz baze)
-  let result;
-  if (passwordInput) {
-    result = await query<{ id: string }>(
-      'SELECT id FROM athletes WHERE (email = $1 OR full_name ILIKE $1) AND password = $2', 
-      [identifier.toLowerCase(), passwordInput]
-    )
-  } else {
-    result = await query<{ id: string }>(
-      'SELECT id FROM athletes WHERE email = $1 OR full_name ILIKE $1', 
-      [identifier.toLowerCase()]
-    )
-  }
-  
+  // 2. PROVJERA ZA SPORTISTU POMOĆU BCRYPT-A
+  // Dohvatamo korisnika na osnovu email-a ili imena
+  const result = await query<{ id: string; password: string | null }>(
+    'SELECT id, password FROM athletes WHERE email = $1 OR full_name ILIKE $1',
+    [identifier.toLowerCase()]
+  )
+
   if (result.rows.length > 0) {
-    const athleteId = result.rows[0].id
-    
-    const cookieStore = await cookies()
-    cookieStore.set('athlete_session', athleteId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge,
-      path: '/',
-    })
+    const athlete = result.rows[0]
+    let isValidPassword = false
 
-    redirect(`/portal/${athleteId}`)
-  } else {
-    redirect('/login?error=true')
+    if (passwordInput && athlete.password) {
+      // 2a. Usporedba heširane lozinke sa bcrypt-om
+      isValidPassword = await bcrypt.compare(passwordInput, athlete.password)
+
+      // 2b. Fallback provjera u slučaju da u bazi još ima starih neheširanih lozinki
+      if (!isValidPassword && passwordInput === athlete.password) {
+        isValidPassword = true
+      }
+    } else if (!passwordInput && !athlete.password) {
+      // Ako korisnik uopće nema postavljenu lozinku
+      isValidPassword = true
+    }
+
+    if (isValidPassword) {
+      const cookieStore = await cookies()
+      cookieStore.set('athlete_session', athlete.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge,
+        path: '/',
+      })
+
+      redirect(`/portal/${athlete.id}`)
+    }
   }
+
+  // Ako podaci nisu ispravni
+  redirect('/login?error=true')
 }
 
 interface PageProps {
@@ -114,7 +125,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
           <form action={handleLogin} className="space-y-5">
             <div>
               <label className="block text-xs font-mono uppercase tracking-wider text-gray-300 mb-2">
-                Email
+                Email / Ime
               </label>
               <input 
                 type="text" 
@@ -130,7 +141,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
                 <label className="block text-xs font-mono uppercase tracking-wider text-gray-300">
                   Lozinka
                 </label>
-              
               </div>
               <input 
                 type="password" 
@@ -139,12 +149,24 @@ export default async function LoginPage({ searchParams }: PageProps) {
                 className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#d4af37] transition-colors"
               />
             </div>
+
+            <div className="flex items-center justify-between text-xs font-mono">
+              <label className="flex items-center space-x-2 text-gray-400 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  name="remember_me" 
+                  className="rounded border-[#1f1f1f] bg-[#0a0a0a] text-[#d4af37] focus:ring-0 cursor-pointer"
+                />
+                <span>Zapamti me</span>
+              </label>
               <Link 
-                  href="/forgot-password" 
-                  className="text-xs font-mono text-gray-400 hover:text-[#d4af37] transition-colors"
-                >
-                  Zaboravili ste lozinku?
-                </Link>
+                href="/forgot-password" 
+                className="text-gray-400 hover:text-[#d4af37] transition-colors"
+              >
+                Zaboravili ste lozinku?
+              </Link>
+            </div>
+
             <button 
               type="submit"
               className="w-full bg-[#d4af37] text-black font-display text-xs font-bold uppercase tracking-widest py-3.5 rounded-lg hover:bg-yellow-600 transition-all shadow-lg shadow-[#d4af37]/10 mt-2 cursor-pointer"
@@ -159,7 +181,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
               Registrujte se ovdje
             </Link>
           </div>
-          
         </div>
       </main>
 

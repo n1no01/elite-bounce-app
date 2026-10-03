@@ -4,6 +4,7 @@ import { query } from '../lib/db'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import bcrypt from 'bcryptjs'
 
 interface WorkoutExercise {
   name: string
@@ -37,9 +38,15 @@ export async function addAthlete(formData: FormData) {
 
   if (!fullName || !gender || !age) return
 
+  // Heširanje lozinke prije spašavanja u bazu
+  let hashedPassword = null
+  if (password && password.trim() !== '') {
+    hashedPassword = await bcrypt.hash(password, 10)
+  }
+
   await query(
     'INSERT INTO athletes (full_name, email, password, gender, sport, age, notes, is_paid, subscription_start_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())',
-    [fullName, email, password, gender, sport, age, notes, isPaid]
+    [fullName, email, hashedPassword, gender, sport, age, notes, isPaid]
   )
   revalidatePath('/admin')
 }
@@ -57,10 +64,21 @@ export async function updateAthlete(formData: FormData) {
 
   if (!id || !fullName || !gender || !age) return
 
-  await query(
-    'UPDATE athletes SET full_name = $1, email = $2, password = $3, gender = $4, sport = $5, age = $6, notes = $7, is_paid = $8 WHERE id = $9',
-    [fullName, email, password, gender, sport, age, notes, isPaid, id]
-  )
+  // Ako je donesena nova lozinka, heširaj je i ažuriraj
+  if (password && password.trim() !== '') {
+    const hashedPassword = await bcrypt.hash(password, 10)
+    await query(
+      'UPDATE athletes SET full_name = $1, email = $2, password = $3, gender = $4, sport = $5, age = $6, notes = $7, is_paid = $8 WHERE id = $9',
+      [fullName, email, hashedPassword, gender, sport, age, notes, isPaid, id]
+    )
+  } else {
+    // Ako polje za lozinku nije popunjeno, zadrži postojeću lozinku u bazi
+    await query(
+      'UPDATE athletes SET full_name = $1, email = $2, gender = $3, sport = $4, age = $5, notes = $6, is_paid = $7 WHERE id = $8',
+      [fullName, email, gender, sport, age, notes, isPaid, id]
+    )
+  }
+
   revalidatePath('/admin')
 }
 
