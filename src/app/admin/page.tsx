@@ -4,6 +4,7 @@ import { query } from '../lib/db'
 import Link from 'next/link'
 import { DeleteAthleteButton } from './DeleteAthleteButton'
 import { WorkoutsManager } from './WorkoutsManager'
+import { formatDateForInput } from '../lib/utils'
 import { ExerciseUploadForm } from './ExerciseUploadForm'
 import { 
   logoutAdmin, 
@@ -26,7 +27,7 @@ interface Athlete {
   password: string | null
   gender: string
   sport: string | null
-  age: number
+  birth_date: string | null
   notes: string | null
   is_paid: boolean
   subscription_start_date: string | null
@@ -63,6 +64,7 @@ interface Exercise {
   video_url: string
   created_at: string
 }
+
 interface Message {
   id: string
   athlete_id: string
@@ -104,14 +106,13 @@ export default async function AdminPage() {
 
   const todayDateString = new Date().toISOString().split('T')[0]
 
-  // 1. Povuci poruke iz baze
-let messages: Message[] = []
-try {
-  const msgRes = await query<Message>("SELECT * FROM messages ORDER BY created_at DESC")
-  messages = msgRes.rows
-} catch (e) {
-  messages = []
-}
+  let messages: Message[] = []
+  try {
+    const msgRes = await query<Message>("SELECT * FROM messages ORDER BY created_at DESC")
+    messages = msgRes.rows
+  } catch (e) {
+    messages = []
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f5f5f5] p-6 sm:p-10 font-sans">
@@ -178,8 +179,8 @@ try {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Godine</label>
-                  <input type="number" name="age" required min="10" max="60" className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" placeholder="npr. 21" />
+                  <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Datum Rođenja</label>
+                  <input type="date" name="birthDate" required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" />
                 </div>
               </div>
 
@@ -275,8 +276,8 @@ try {
                               </select>
                             </div>
                             <div>
-                              <label className="text-[10px] font-mono text-gray-500 uppercase">Godine</label>
-                              <input type="number" name="age" defaultValue={athlete.age} required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-white" />
+                              <label className="text-[10px] font-mono text-gray-500 uppercase">Datum Rođenja</label>
+                              <input type="date" name="birthDate" defaultValue={formatDateForInput(athlete.birth_date)} required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-white" />
                             </div>
                           </div>
 
@@ -290,10 +291,7 @@ try {
                           </button>
                         </form>
 
-                        <div className="mt-4 pt-3 border-t border-[#1f1f1f] space-y-2">
-                          <span className="text-[10px] font-mono text-[#d4af37] uppercase tracking-wider">Dodijeljeni treninzi ({athleteWorkouts.length}):</span>
-                          <WorkoutsManager workouts={athleteWorkouts} />
-                        </div>
+                      
                       </details>
                     </div>
                   )
@@ -339,7 +337,7 @@ try {
 
             <div>
               <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Datum Testiranja</label>
-              <input type="date" name="testDate" defaultValue={todayDateString} required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" />
+              <input type="date" name="testDate" defaultValue={formatDateForInput(new Date())} required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" />
             </div>
 
             <div>
@@ -502,12 +500,11 @@ try {
 
       </div>
       <AdminChatWidget 
-      athletes={athletes} 
-      messages={messages} 
-      markAsReadAction={markAthleteMessagesAsRead}
-      sendMessageAction={sendAdminMessage}
-    />
+        athletes={athletes} 
+        messages={messages} 
+        markAsReadAction={markAthleteMessagesAsRead}
+        sendMessageAction={sendAdminMessage}
+      />
     </div>
-
   )
 }

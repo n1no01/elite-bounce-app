@@ -32,11 +32,11 @@ export async function addAthlete(formData: FormData) {
   const password = formData.get('password') as string || null
   const gender = formData.get('gender') as string
   const sport = formData.get('sport') as string || null
-  const age = Number(formData.get('age'))
+  const birthDate = formData.get('birthDate') as string
   const notes = formData.get('notes') as string || null
   const isPaid = formData.get('isPaid') === 'on'
 
-  if (!fullName || !gender || !age) return
+  if (!fullName || !gender || !birthDate) return
 
   // Heširanje lozinke prije spašavanja u bazu
   let hashedPassword = null
@@ -45,8 +45,8 @@ export async function addAthlete(formData: FormData) {
   }
 
   await query(
-    'INSERT INTO athletes (full_name, email, password, gender, sport, age, notes, is_paid, subscription_start_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())',
-    [fullName, email, hashedPassword, gender, sport, age, notes, isPaid]
+    'INSERT INTO athletes (full_name, email, password, gender, sport, birth_date, notes, is_paid, subscription_start_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())',
+    [fullName, email, hashedPassword, gender, sport, birthDate, notes, isPaid]
   )
   revalidatePath('/admin')
 }
@@ -54,28 +54,29 @@ export async function addAthlete(formData: FormData) {
 export async function updateAthlete(formData: FormData) {
   const id = formData.get('id') as string
   const fullName = formData.get('fullName') as string
-  const email = formData.get('email') as string || null
   const password = formData.get('password') as string || null
   const gender = formData.get('gender') as string
   const sport = formData.get('sport') as string || null
-  const age = Number(formData.get('age'))
+  const birthDate = formData.get('birthDate') as string
   const notes = formData.get('notes') as string || null
   const isPaid = formData.get('isPaid') === 'on'
 
-  if (!id || !fullName || !gender || !age) return
+  const cleanBirthDate = birthDate.split('T')[0]
+
+  if (!id || !fullName || !gender || !birthDate) return
 
   // Ako je donesena nova lozinka, heširaj je i ažuriraj
   if (password && password.trim() !== '') {
     const hashedPassword = await bcrypt.hash(password, 10)
     await query(
-      'UPDATE athletes SET full_name = $1, email = $2, password = $3, gender = $4, sport = $5, age = $6, notes = $7, is_paid = $8 WHERE id = $9',
-      [fullName, email, hashedPassword, gender, sport, age, notes, isPaid, id]
+      'UPDATE athletes SET full_name = $1, password = $2, gender = $3, sport = $4, birth_date = $5, notes = $6, is_paid = $7 WHERE id = $8',
+      [fullName, hashedPassword, gender, sport, cleanBirthDate, notes, isPaid, id]
     )
   } else {
     // Ako polje za lozinku nije popunjeno, zadrži postojeću lozinku u bazi
     await query(
-      'UPDATE athletes SET full_name = $1, email = $2, gender = $3, sport = $4, age = $5, notes = $6, is_paid = $7 WHERE id = $8',
-      [fullName, email, gender, sport, age, notes, isPaid, id]
+      'UPDATE athletes SET full_name = $1, gender = $2, sport = $3, birth_date = $4, notes = $5, is_paid = $6 WHERE id = $7',
+      [fullName, gender, sport, cleanBirthDate, notes, isPaid, id]
     )
   }
 

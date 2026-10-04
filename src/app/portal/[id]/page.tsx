@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import JumpProgressModal from '../../components/JumpProgressModal'
 import ChatBox from '../../components/ChatBox'
+import BirthdayBanner from '../../components/BirthdayBanner' // <-- Uvezi komponentu
 import bcrypt from 'bcryptjs'
 
 interface Athlete {
@@ -16,6 +17,7 @@ interface Athlete {
   gender: string
   sport: string | null
   age: number
+  birth_date: string | Date | null // <-- Dodano ovdje da ne bude type error
   notes: string | null
 }
 
@@ -76,7 +78,6 @@ async function updateCredentials(formData: FormData) {
 
   // Ako je korisnik unio novu lozinku, heširaj je prije spremanja
   if (newPassword && newPassword.trim() !== '') {
-    // 10 je broj "salt rundi" (sigurni standard)
     const hashedPassword = await bcrypt.hash(newPassword, 10)
 
     await query(
@@ -84,7 +85,6 @@ async function updateCredentials(formData: FormData) {
       [email, hashedPassword, athleteId]
     )
   } else {
-    // Ako polje za lozinku ostane prazno, ažuriraj samo email
     await query(
       'UPDATE athletes SET email = $1 WHERE id = $2',
       [email, athleteId]
@@ -106,10 +106,10 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
     redirect('/login')
   }
 
-  // Automatsko brisanje starih treninga (može ići asinhrono bez čekanja ili u cron job)
+  // Automatsko brisanje starih treninga
   query('DELETE FROM workouts WHERE athlete_id = $1 AND created_at < NOW() - INTERVAL \'30 days\'', [id]).catch(console.error)
 
-  // PARALELNO DOHVATANJE PODATAKA IZ BAZE (Znatno brže učitavanje)
+  // PARALELNO DOHVATANJE PODATAKA IZ BAZE
   const [athleteRes, workoutsRes, testsRes, notifRes] = await Promise.all([
     query<Athlete>('SELECT * FROM athletes WHERE id = $1', [id]),
     query<Workout>('SELECT * FROM workouts WHERE athlete_id = $1 ORDER BY created_at DESC', [id]),
@@ -126,7 +126,7 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
   const jumpTests = testsRes.rows
   const notifications = notifRes.rows
 
-  // Dinamičko sakupljanje dostpnih sedmica iz treninga
+  // Dinamičko sakupljanje dostupnih sedmica iz treninga
   const extractedWeeks = Array.from(new Set(allWorkouts.map(w => w.week_label))).filter(Boolean)
   const defaultWeeks = ['Sedmica 1', 'Sedmica 2', 'Sedmica 3', 'Sedmica 4']
   const weeks = Array.from(new Set([...defaultWeeks, ...extractedWeeks]))
@@ -230,6 +230,9 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
       {/* GLAVNI SADRŽAJ */}
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
         
+        {/* ROĐENDANSKA ČESTITKA (Prikazuje se samo na rođendan) */}
+        <BirthdayBanner athlete={athlete} />
+
         {/* BANER ZA OBAVJEŠTENJA */}
         {notifications.length > 0 && (
           <div className="bg-gradient-to-r from-[#d4af37]/20 via-[#121212] to-[#121212] border-2 border-[#d4af37] rounded-2xl p-6 sm:p-8 space-y-4 shadow-2xl shadow-[#d4af37]/10">
@@ -456,7 +459,8 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
             </button>
           </form>
         </div>
-    {/* Chat prozor za trenera sa ovim sportistom */}
+      
+      {/* Chat prozor za trenera sa ovim sportistom */}
       <ChatBox athleteId={athlete.id} currentUserType="athlete" />
       </main>
 
