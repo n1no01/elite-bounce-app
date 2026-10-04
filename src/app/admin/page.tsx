@@ -14,8 +14,10 @@ import {
   assignWorkout, 
   addJumpTest, 
   sendNotification, 
-  deleteNotification 
+  deleteNotification,
 } from './actions'
+import { markAthleteMessagesAsRead, sendAdminMessage } from './actions'
+import { AdminChatWidget } from '../components/AdminChatWidget'
 
 interface Athlete {
   id: string
@@ -61,6 +63,14 @@ interface Exercise {
   video_url: string
   created_at: string
 }
+interface Message {
+  id: string
+  athlete_id: string
+  sender: string // 'athlete' | 'admin'
+  content: string
+  is_read: boolean
+  created_at: string
+}
 
 export default async function AdminPage() {
   const cookieStore = await cookies()
@@ -93,6 +103,15 @@ export default async function AdminPage() {
   }
 
   const todayDateString = new Date().toISOString().split('T')[0]
+
+  // 1. Povuci poruke iz baze
+let messages: Message[] = []
+try {
+  const msgRes = await query<Message>("SELECT * FROM messages ORDER BY created_at DESC")
+  messages = msgRes.rows
+} catch (e) {
+  messages = []
+}
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f5f5f5] p-6 sm:p-10 font-sans">
@@ -482,6 +501,13 @@ export default async function AdminPage() {
         </div>
 
       </div>
+      <AdminChatWidget 
+      athletes={athletes} 
+      messages={messages} 
+      markAsReadAction={markAthleteMessagesAsRead}
+      sendMessageAction={sendAdminMessage}
+    />
     </div>
+
   )
 }

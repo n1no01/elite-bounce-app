@@ -248,3 +248,24 @@ export async function deleteExercise(formData: FormData) {
     console.error('Greška pri brisanju vježbe:', error)
   }
 }
+
+// Označi sve nepročitane poruke sportiste kao pročitane
+export async function markAthleteMessagesAsRead(athleteId: string) {
+  if (!athleteId) return
+  await query("UPDATE messages SET is_read = TRUE WHERE athlete_id = $1 AND sender = 'athlete'", [athleteId])
+  revalidatePath('/admin')
+}
+
+// Slanje poruke od strane admina
+export async function sendAdminMessage(formData: FormData) {
+  const athleteId = formData.get('athleteId') as string
+  const message = formData.get('message') as string
+
+  if (!athleteId || !message) return
+
+  await query(
+    "INSERT INTO messages (athlete_id, sender, content, is_read, created_at) VALUES ($1, 'trainer', $2, TRUE, NOW())",
+    [athleteId, message]
+  )
+  revalidatePath('/admin')
+}

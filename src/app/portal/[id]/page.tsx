@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
 import Image from 'next/image'
 import JumpProgressModal from '../../components/JumpProgressModal'
+import ChatBox from '../../components/ChatBox'
 import bcrypt from 'bcryptjs'
 
 interface Athlete {
@@ -316,7 +317,6 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-bold uppercase text-white tracking-wider">Izaberi Sedmicu Treninga</h2>
-            <span className="text-xs font-mono text-[#d4af37]">{selectedWeek}</span>
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#1f1f1f]">
@@ -456,7 +456,8 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
             </button>
           </form>
         </div>
-
+    {/* Chat prozor za trenera sa ovim sportistom */}
+      <ChatBox athleteId={athlete.id} currentUserType="athlete" />
       </main>
 
       {/* FOOTER */}

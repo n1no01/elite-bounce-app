@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { query } from '@/app/lib/db'
 import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
+import ChatBox from '@/app/components/ChatBox'
 
 interface Athlete {
   id: string
@@ -181,7 +182,7 @@ export default async function AthleteDetailPage({
     : ''
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-[#f5f5f5] p-6 sm:p-10 font-sans">
+    <div className="min-h-screen bg-[#0a0a0a] text-[#f5f5f5] p-6 sm:p-10 font-sans relative">
       <div className="max-w-5xl mx-auto space-y-8">
         
         {/* Navigacija nazad */}
@@ -241,7 +242,7 @@ export default async function AthleteDetailPage({
                 <input type="hidden" name="athleteId" value={athlete.id} />
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Zadnji Čučanj (kg)</label>
+                    <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Back Squat (kg)</label>
                     <input 
                       type="number" 
                       step="0.5"
@@ -252,7 +253,7 @@ export default async function AthleteDetailPage({
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Nabačaj (kg)</label>
+                    <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Power Clean (kg)</label>
                     <input 
                       type="number" 
                       step="0.5"
@@ -464,6 +465,9 @@ export default async function AthleteDetailPage({
         )}
 
       </div>
+
+      {/* Chat prozor za trenera sa ovim sportistom */}
+      <ChatBox athleteId={athlete.id} currentUserType="trainer" />
     </div>
   )
 }
