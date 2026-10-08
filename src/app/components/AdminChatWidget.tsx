@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 
 interface Message {
   id: string
   athlete_id: string
-  sender: string // 'athlete' | 'admin'
+  sender: string // 'athlete' | 'trainer'
   content: string
   is_read: boolean
   created_at: string
@@ -34,6 +34,9 @@ export function AdminChatWidget({
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Referenca za automatsko skrolanje na dno
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Izračunaj nepročitane poruke od sportista
   const unreadMessages = messages.filter(m => m.sender === 'athlete' && !m.is_read)
@@ -58,6 +61,13 @@ export function AdminChatWidget({
   const currentAthleteMessages = messages
     .filter(m => m.athlete_id === selectedAthleteId)
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+  // Automatski skrolaj na dno kada se otvore poruke ili stigne nova poruka
+  useEffect(() => {
+    if (selectedAthleteId) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [selectedAthleteId, currentAthleteMessages])
 
   const handleSelectAthlete = async (athleteId: string) => {
     setSelectedAthleteId(athleteId)
@@ -88,16 +98,20 @@ export function AdminChatWidget({
           {/* HEADER */}
           <div className="bg-[#0a0a0a] p-4 border-b border-[#1f1f1f] flex items-center justify-between">
             {selectedAthleteId ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 overflow-hidden">
                 <button 
                   onClick={() => setSelectedAthleteId(null)}
-                  className="text-gray-400 hover:text-white text-xs font-mono bg-[#121212] border border-[#1f1f1f] px-2 py-1 rounded transition-colors"
+                  className="text-gray-400 hover:text-white text-xs font-mono bg-[#121212] border border-[#1f1f1f] px-2 py-1 rounded transition-colors shrink-0"
                 >
                   ← Nazad
                 </button>
-                <span className="font-bold text-sm text-white truncate max-w-[180px]">
-                  {selectedAthlete?.full_name}
-                </span>
+                <Link 
+                  href={`/admin/athletes/${selectedAthleteId}`}
+                  className="font-bold text-sm text-white truncate max-w-[160px] hover:text-[#d4af37] transition-colors"
+                  title="Otvori profil sportiste"
+                >
+                  {selectedAthlete?.full_name} ↗
+                </Link>
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -112,13 +126,13 @@ export function AdminChatWidget({
 
             <button 
               onClick={() => setIsOpen(false)}
-              className="text-gray-400 hover:text-white text-sm font-bold px-2"
+              className="text-gray-400 hover:text-white text-sm font-bold px-2 shrink-0"
             >
               ✕
             </button>
           </div>
 
-          {/* Sadržaj: LISTA SPORTISTA ili DHIREKTAN CHAT */}
+          {/* Sadržaj: LISTA SPORTISTA ili DIREKTAN CHAT */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0a0a0a]/50">
             {!selectedAthleteId ? (
               /* NIVO 1: LISTA SPORTISTA KOJI SU PISALI */
@@ -154,17 +168,8 @@ export function AdminChatWidget({
                 ))
               )
             ) : (
-              /* NIVO 2: DIRECT CHAT SA IZABRANIM SPORTISTOM */
+              /* NIVO 2: DIREKTAN CHAT SA IZABRANIM SPORTISTOM */
               <div className="space-y-3">
-                <div className="text-center">
-                  <Link 
-                    href={`/admin/athletes/${selectedAthleteId}`}
-                    className="text-[10px] font-mono text-[#d4af37] hover:underline"
-                  >
-                    Otvori profil sportiste ↗
-                  </Link>
-                </div>
-
                 {currentAthleteMessages.map(msg => {
                   const isTrainerMessage = msg.sender === 'trainer'
                   return (
@@ -187,6 +192,9 @@ export function AdminChatWidget({
                     </div>
                   )
                 })}
+                
+                {/* Referenca za skrolanje na dno */}
+                <div ref={messagesEndRef} />
               </div>
             )}
           </div>

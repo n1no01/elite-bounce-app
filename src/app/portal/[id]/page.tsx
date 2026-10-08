@@ -2,12 +2,16 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { query } from '../../lib/db'
 import { revalidatePath } from 'next/cache'
-import Link from 'next/link'
-import Image from 'next/image'
 import JumpProgressModal from '../../components/JumpProgressModal'
 import ChatBox from '../../components/ChatBox'
-import BirthdayBanner from '../../components/BirthdayBanner' // <-- Uvezi komponentu
+import BirthdayBanner from '../../components/BirthdayBanner'
 import bcrypt from 'bcryptjs'
+
+// Uvezene nove komponente
+import PortalHeader from './components/PortalHeader'
+import NotificationsBanner from './components/NotificationsBanner'
+import WorkoutSection from './components/WorkoutSection'
+import CredentialsForm from './components/CredentialsForm'
 
 interface Athlete {
   id: string
@@ -17,7 +21,7 @@ interface Athlete {
   gender: string
   sport: string | null
   age: number
-  birth_date: string | Date | null // <-- Dodano ovdje da ne bude type error
+  birth_date: string | Date | null
   notes: string | null
 }
 
@@ -67,7 +71,6 @@ async function handleLogout() {
   redirect('/login')
 }
 
-// Server akcija za ažuriranje pristupnih podataka (email i lozinka)
 async function updateCredentials(formData: FormData) {
   'use server'
   const athleteId = formData.get('athleteId') as string
@@ -76,19 +79,11 @@ async function updateCredentials(formData: FormData) {
 
   if (!athleteId) return
 
-  // Ako je korisnik unio novu lozinku, heširaj je prije spremanja
   if (newPassword && newPassword.trim() !== '') {
     const hashedPassword = await bcrypt.hash(newPassword, 10)
-
-    await query(
-      'UPDATE athletes SET email = $1, password = $2 WHERE id = $3',
-      [email, hashedPassword, athleteId]
-    )
+    await query('UPDATE athletes SET email = $1, password = $2 WHERE id = $3', [email, hashedPassword, athleteId])
   } else {
-    await query(
-      'UPDATE athletes SET email = $1 WHERE id = $2',
-      [email, athleteId]
-    )
+    await query('UPDATE athletes SET email = $1 WHERE id = $2', [email, athleteId])
   }
 
   revalidatePath(`/portal/${athleteId}`)
@@ -98,7 +93,6 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
   const { id } = await params
   const resolvedSearchParams = await searchParams
 
-  // --- SIGURNOSNA PROVJERA (SAMO VLASNIK NALOGA) ---
   const cookieStore = await cookies()
   const athleteCookie = cookieStore.get('athlete_session')
 
@@ -106,10 +100,8 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
     redirect('/login')
   }
 
-  // Automatsko brisanje starih treninga
   query('DELETE FROM workouts WHERE athlete_id = $1 AND created_at < NOW() - INTERVAL \'30 days\'', [id]).catch(console.error)
 
-  // PARALELNO DOHVATANJE PODATAKA IZ BAZE
   const [athleteRes, workoutsRes, testsRes, notifRes] = await Promise.all([
     query<Athlete>('SELECT * FROM athletes WHERE id = $1', [id]),
     query<Workout>('SELECT * FROM workouts WHERE athlete_id = $1 ORDER BY created_at DESC', [id]),
@@ -126,7 +118,6 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
   const jumpTests = testsRes.rows
   const notifications = notifRes.rows
 
-  // Dinamičko sakupljanje dostupnih sedmica iz treninga
   const extractedWeeks = Array.from(new Set(allWorkouts.map(w => w.week_label))).filter(Boolean)
   const defaultWeeks = ['Sedmica 1', 'Sedmica 2', 'Sedmica 3', 'Sedmica 4']
   const weeks = Array.from(new Set([...defaultWeeks, ...extractedWeeks]))
@@ -134,7 +125,6 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
   const selectedWeek = resolvedSearchParams.sedmica || weeks[0] || 'Sedmica 1'
   const currentWeekWorkouts = allWorkouts.filter(w => w.week_label === selectedWeek)
 
-  // Definicija tipova skokova koji se prate
   const supportedTestTypes = [
     { type: 'CMJ', name: 'Countermovement Jump' },
     { type: 'CMJ-AS', name: 'CMJ with Arm Swing' },
@@ -143,7 +133,6 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
     { type: 'AJ', name: 'Approach Jump' }
   ]
 
-  // Izračunavanje ličnog rekorda i pakovanje historije za grafikone
   const bestMetrics = supportedTestTypes.map(st => {
     const matchingTests = jumpTests.filter(t => t.test_type.trim().toUpperCase() === st.type)
     if (matchingTests.length === 0) {
@@ -180,107 +169,19 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f5f5f5] flex flex-col justify-between selection:bg-[#d4af37] selection:text-black font-sans">
       
-      {/* NAVIGACIJA PORTALA */}
-      <header className="w-full border-b border-[#1f1f1f] bg-[#0a0a0a]/90 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4 sm:gap-6">
-            <Link href="/" className="flex items-center group py-2">
-              <Image 
-                src="/logo.png" 
-                alt="Elite Bounce Logo" 
-                width={300} 
-                height={100} 
-                priority 
-                className="h-12 w-auto object-contain"
-              />
-            </Link>
-            <span className="hidden lg:inline-block text-[#d4af37] font-mono text-[10px] font-bold tracking-widest bg-[#d4af37]/10 px-2.5 py-1 rounded border border-[#d4af37]/20">
-              ATHLETE PORTAL
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link 
-              href="/leaderboard" 
-              target="_blank" 
-              className="border border-[#d4af37]/40 bg-[#d4af37]/10 text-[#d4af37] hover:bg-[#d4af37]/20 text-xs font-bold uppercase tracking-wider px-3 sm:px-4 py-2 rounded transition-colors"
-            >
-              Tabela ↗
-            </Link>
-
-            <Link 
-              href="/exercises" 
-              className="border border-[#1f1f1f] bg-[#121212] text-gray-300 hover:text-white text-xs font-bold uppercase tracking-wider px-3 sm:px-4 py-2 rounded transition-colors"
-            >
-              Vježbe ↗
-            </Link>
-
-            <form action={handleLogout}>
-              <button 
-                type="submit"
-                className="border border-[#1f1f1f] bg-[#121212] text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider px-3 sm:px-4 py-2 rounded transition-colors cursor-pointer"
-              >
-                Odjava
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+      {/* 1. Navigacija */}
+      <PortalHeader handleLogout={handleLogout} />
 
       {/* GLAVNI SADRŽAJ */}
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
         
-        {/* ROĐENDANSKA ČESTITKA (Prikazuje se samo na rođendan) */}
+        {/* Rođendanska čestitka */}
         <BirthdayBanner athlete={athlete} />
 
-        {/* BANER ZA OBAVJEŠTENJA */}
-        {notifications.length > 0 && (
-          <div className="bg-gradient-to-r from-[#d4af37]/20 via-[#121212] to-[#121212] border-2 border-[#d4af37] rounded-2xl p-6 sm:p-8 space-y-4 shadow-2xl shadow-[#d4af37]/10">
-            <div className="flex items-center justify-between border-b border-[#d4af37]/30 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#d4af37] text-black flex items-center justify-center text-xl font-bold shadow-lg">
-                  🔔
-                </div>
-                <div>
-                  <span className="text-[#d4af37] font-mono text-[10px] font-bold uppercase tracking-widest">
-                    VAŽNA PORUKA OD TRENERA
-                  </span>
-                  <h2 className="font-display text-lg sm:text-xl font-black uppercase text-white">
-                    Obavijest
-                  </h2>
-                </div>
-              </div>
-              <span className="text-xs font-mono bg-[#d4af37] text-black px-3 py-1 rounded-full font-bold">
-                {notifications.length} {notifications.length === 1 ? 'obavještenje' : 'obavještenja'}
-              </span>
-            </div>
+        {/* 2. Baner za obavještenja */}
+        <NotificationsBanner notifications={notifications} />
 
-            <div className="space-y-3 pt-1">
-              {notifications.map((notif) => (
-                <div 
-                  key={notif.id} 
-                  className="bg-[#0a0a0a]/90 border border-[#d4af37]/40 p-4 sm:p-5 rounded-xl space-y-2 shadow-inner"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                    <h3 className="font-display font-bold text-base sm:text-lg text-[#d4af37] flex items-center gap-2">
-                      {notif.title}
-                    </h3>
-                    <span className="text-[10px] font-mono text-gray-400">
-                      {new Date(notif.created_at).toLocaleDateString('bs-BA', {
-                        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-200 font-medium leading-relaxed">
-                    {notif.message}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* DOBRODOŠLICA */}
+        {/* Dobrodošlica */}
         <div className="bg-[#121212] border border-[#1f1f1f] rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-xl">
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#d4af37]/10 rounded-full blur-3xl pointer-events-none"></div>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
@@ -295,7 +196,7 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
           </div>
         </div>
 
-        {/* SEKCIJA 1: LIČNI REKORDI SA INTERAKTIVNIM MODALOM ZA GRAFIKON */}
+        {/* Sekcija: Lični rekordi */}
         <div className="bg-[#121212] border border-[#1f1f1f] rounded-2xl p-6 sm:p-8 space-y-6">
           <div className="border-b border-[#1f1f1f] pb-4 flex items-center justify-between">
             <div>
@@ -316,152 +217,24 @@ export default async function AthletePortalPage({ params, searchParams }: PagePr
           )}
         </div>
 
-        {/* SEKCIJA 2: ODABIR SEDMICE (TABS) */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-bold uppercase text-white tracking-wider">Izaberi Sedmicu Treninga</h2>
-          </div>
+        {/* 3. Sekcija za treninge i sedmice */}
+        <WorkoutSection 
+          athleteId={athlete.id}
+          weeks={weeks}
+          selectedWeek={selectedWeek}
+          allWorkouts={allWorkouts}
+          currentWeekWorkouts={currentWeekWorkouts}
+        />
 
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#1f1f1f]">
-            {weeks.map((week) => {
-              const isSelected = selectedWeek === week
-              const hasWorkouts = allWorkouts.some(w => w.week_label === week)
-
-              return (
-                <Link
-                  key={week}
-                  href={`/portal/${id}?sedmica=${week}`}
-                  scroll={false}
-                  className={`px-4 py-2.5 rounded-lg text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-all border cursor-pointer ${
-                    isSelected 
-                      ? 'bg-[#d4af37] text-black font-bold border-[#d4af37] shadow-lg shadow-[#d4af37]/10' 
-                      : hasWorkouts
-                        ? 'bg-[#121212] text-white border-[#d4af37]/40 hover:border-[#d4af37]'
-                        : 'bg-[#121212] text-gray-500 border-[#1f1f1f] hover:text-gray-300'
-                  }`}
-                >
-                  {week}
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* SEKCIJA 3: PRIKAZ TRENINGA */}
-        <div className="space-y-6">
-          <div className="border-b border-[#1f1f1f] pb-3 flex items-center justify-between">
-            <h3 className="font-display text-xl font-bold uppercase text-white">
-              Plan treninga za <span className="text-[#d4af37]">{selectedWeek}</span>
-            </h3>
-            <span className="text-xs font-mono text-gray-400">{currentWeekWorkouts.length} treninga objavljeno</span>
-          </div>
-
-          {currentWeekWorkouts.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6">
-              {currentWeekWorkouts.map((workout) => {
-                let exercises: Exercise[] = []
-                try {
-                  exercises = typeof workout.exercises === 'string' 
-                    ? JSON.parse(workout.exercises) 
-                    : workout.exercises || []
-                } catch {
-                  exercises = []
-                }
-
-                return (
-                  <div key={workout.id} className="bg-[#121212] border border-[#1f1f1f] rounded-xl p-6 sm:p-8 space-y-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1f1f1f] pb-4">
-                      <div>
-                        <span className="text-[#d4af37] font-mono text-[10px] font-bold uppercase tracking-widest bg-[#d4af37]/10 px-2.5 py-1 rounded border border-[#d4af37]/20">
-                          {workout.week_label}
-                        </span>
-                        <h4 className="font-display text-xl font-bold uppercase text-white mt-2">
-                          {workout.phase_title}
-                        </h4>
-                      </div>
-                    </div>
-
-                    {workout.coach_notes && (
-                      <div className="bg-[#0a0a0a] border border-[#1f1f1f] p-4 rounded-lg text-xs text-gray-300">
-                        <span className="text-[#d4af37] font-mono uppercase font-bold block mb-1">Upute i fokus trenera:</span>
-                        {workout.coach_notes}
-                      </div>
-                    )}
-
-                    <div className="space-y-3">
-                      <h5 className="text-xs font-mono uppercase text-gray-400 tracking-wider">Propisane vježbe:</h5>
-                      <div className="grid grid-cols-1 gap-3">
-                        {exercises.map((ex, idx) => (
-                          <div key={idx} className="bg-[#0a0a0a] border border-[#1f1f1f] p-4 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="space-y-1">
-                              <div className="font-display font-bold text-sm text-white flex items-center gap-2">
-                                <span className="text-[#d4af37] font-mono text-xs">{idx + 1}.</span> {ex.name}
-                              </div>
-                              {ex.desc && <p className="text-xs text-gray-400 font-light">{ex.desc}</p>}
-                            </div>
-                            {ex.reps && (
-                              <div className="self-start sm:self-center bg-[#121212] border border-[#1f1f1f] px-3 py-1.5 rounded text-xs font-mono text-[#d4af37] font-bold whitespace-nowrap">
-                                {ex.reps}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="bg-[#121212] border border-[#1f1f1f] rounded-xl p-12 text-center space-y-3">
-              <div className="text-2xl">⚡</div>
-              <h4 className="font-display text-lg font-bold text-white uppercase">Treninzi još nisu dodijeljeni</h4>
-              <p className="text-gray-400 text-xs max-w-md mx-auto font-light">
-                Za izabranu sedmicu trener još uvijek nije objavio raspored. Provjeri druge sedmice ili sačekaj da trener unese novi protokol.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* SEKCIJA 4: PROMJENA PRISTUPNIH PODATAKA */}
-        <div className="bg-[#121212] border border-[#1f1f1f] rounded-2xl p-6 sm:p-8 space-y-6">
-          <div className="border-b border-[#1f1f1f] pb-4">
-            <h2 className="font-display text-xl font-bold uppercase text-white mt-1">Izmjena Pristupnih Podataka</h2>
-          </div>
-
-          <form action={updateCredentials} className="space-y-4 max-w-lg">
-            <input type="hidden" name="athleteId" value={athlete.id} />
-            <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Email adresa</label>
-              <input 
-                type="email" 
-                name="email" 
-                defaultValue={athlete.email || ''} 
-                required 
-                className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg p-3 text-sm text-white focus:border-[#d4af37] outline-none" 
-                placeholder="tvoj.email@domain.com"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Nova lozinka (ostavi prazno ako ne mijenjaš)</label>
-              <input 
-                type="password" 
-                name="password" 
-                className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg p-3 text-sm text-white focus:border-[#d4af37] outline-none" 
-                placeholder="Unesi novu lozinku"
-              />
-            </div>
-            <button 
-              type="submit" 
-              className="bg-[#d4af37] text-black font-display font-bold uppercase tracking-wider px-6 py-3 rounded-lg hover:bg-yellow-600 transition-all text-xs cursor-pointer"
-            >
-              Sačuvaj Nove Podatke
-            </button>
-          </form>
-        </div>
+        {/* 4. Forma za promjenu pristupnih podataka */}
+        <CredentialsForm 
+          athleteId={athlete.id}
+          currentEmail={athlete.email}
+          updateCredentials={updateCredentials}
+        />
       
-      {/* Chat prozor za trenera sa ovim sportistom */}
-      <ChatBox athleteId={athlete.id} currentUserType="athlete" />
+        {/* Chat prozor */}
+        <ChatBox athleteId={athlete.id} currentUserType="athlete" />
       </main>
 
       {/* FOOTER */}
