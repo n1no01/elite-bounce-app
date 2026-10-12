@@ -3,6 +3,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
+import { ContactForm } from './components/ContactForm'
+import { submitInquiryAction } from './lib/inquiry'
 
 export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
@@ -386,18 +388,17 @@ export default function Home() {
         </section>
 
         {/* CTA CALL TO ACTION */}
+       {/* CTA CALL TO ACTION */}
         <section className="py-20 border-t border-[#1f1f1f] bg-[#121212]/30 px-4 sm:px-6 text-center relative z-10">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="font-display text-3xl md:text-4xl font-black uppercase tracking-tight mb-4">SPREMAN ZA LET?</h2>
-            <p className="text-gray-400 text-sm md:text-base mb-8">
-              Klikom na dugme ispod pošalji mi direktan email sa svojim podacima i ciljevima, i javiću ti se u roku od 24 sata sa detaljima za početak saradnje.
-            </p>
-            <a 
-              href="mailto:info@elitebounce.fit?subject=Prijava za Elite Bounce protokol" 
-              className="inline-block bg-[#d4af37] text-black font-display text-xs sm:text-sm font-bold uppercase tracking-widest px-8 py-4 rounded hover:bg-yellow-600 transition-all shadow-lg shadow-[#d4af37]/10"
-            >
-              POŠALJI DIREKTAN UPIT NA EMAIL
-            </a>
+          <div className="max-w-3xl mx-auto space-y-8">
+            <div>
+              <h2 className="font-display text-3xl md:text-4xl font-black uppercase tracking-tight mb-4">SPREMAN ZA LET?</h2>
+              <p className="text-gray-400 text-sm md:text-base max-w-xl mx-auto">
+                Popuni formu ispod sa svojim podacima i ciljevima, i javiću ti se u roku od 24 sata sa detaljima za početak saradnje.
+              </p>
+            </div>
+
+            <ContactForm submitInquiryAction={submitInquiryAction} />
           </div>
         </section>
       </main>
