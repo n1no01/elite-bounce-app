@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { ContactForm } from './components/ContactForm'
 import { submitInquiryAction } from './lib/inquiry'
+import { EbookForm } from './components/EBookForm'
 
 export default function Home() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
@@ -256,7 +257,35 @@ export default function Home() {
 
           </div>
         </section>
+        {/* E-BOOK / LEAD MAGNET SEKCIJA */}
+        <section className="py-20 bg-gradient-to-b from-[#0a0a0a] via-[#121212]/50 to-[#0a0a0a] border-t border-[#1f1f1f] px-4 sm:px-6 relative z-10">
+          <div className="max-w-5xl mx-auto bg-[#121212] border border-[#d4af37]/30 rounded-2xl p-8 sm:p-12 relative overflow-hidden shadow-2xl">
+            <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-[#d4af37]/5 rounded-full blur-3xl pointer-events-none"></div>
 
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+              <div className="lg:col-span-7 space-y-4">
+                <span className="text-[#d4af37] font-mono text-xs font-bold uppercase tracking-widest bg-[#d4af37]/10 px-3 py-1 rounded border border-[#d4af37]/20 mb-4 inline-block">
+                  BESPLATNI VODIČ
+                </span>
+                <h2 className="font-display text-2xl sm:text-4xl font-black uppercase tracking-tight">
+                  Elite Bounce Metodologija
+                </h2>
+                <p className="text-gray-400 text-sm sm:text-base font-light leading-relaxed">
+                  Preuzmi opći vodič za razumijevanje i razvoj vertikalnog skoka. Saznaj sve o mehanici eksplozivnog odraza, pliometriji, periodizaciji treninga i upravljanju opterećenjem tetiva na jednom mjestu.
+                </p>
+                <div className="flex flex-wrap gap-4 pt-2 text-xs font-mono text-gray-300">
+                  <span className="flex items-center gap-1.5">✓ Biomehanika skoka</span>
+                  <span className="flex items-center gap-1.5">✓ Sistemi periodizacije</span>
+                  <span className="flex items-center gap-1.5">✓ Rješavanje bola u tetivama</span>
+                </div>
+              </div>
+
+              <div className="lg:col-span-5">
+                <EbookForm />
+              </div>
+            </div>
+          </div>
+        </section>
         {/* ISKUSTVA / TESTIMONIALS */}
         <section id="iskustva" className="py-24 bg-[#121212]/30 border-t border-[#1f1f1f] px-4 sm:px-6 scroll-mt-20 relative z-10">
           <div className="max-w-7xl mx-auto">

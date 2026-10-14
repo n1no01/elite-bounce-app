@@ -24,7 +24,7 @@ export async function submitInquiryAction(formData: FormData) {
 
     // 2. Slanje notifikacije na tvoj mail preko Resend-a
     await resend.emails.send({
-      from: 'Elite Bounce <onboarding@resend.dev>', // Ili tvoj verifikovani domen ako ga imaš (npr. info@elitebounce.fit)
+      from: 'Elite Bounce <info@elitebounce.fit>', // Ili tvoj verifikovani domen ako ga imaš (npr. info@elitebounce.fit)
       to: 'ninogor@gmail.com', // Tvoj e-mail na koji primaš obavještenja
       replyTo: email, // Omogućava da klikom na "Reply" direktno odgovaraš klijentu
       subject: `Elite Bounce upit: ${fullName} (${program})`,
