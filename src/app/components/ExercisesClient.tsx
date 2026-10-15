@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { DeleteExerciseButton } from '../components/DeleteExerciseButton' // Prilagodi putanju po potrebi
+import Image from 'next/image'
+import { DeleteExerciseButton } from '../components/DeleteExerciseButton'
 
 interface Exercise {
   id: string
@@ -18,18 +19,12 @@ interface ExercisesClientProps {
   deleteExercise: (formData: FormData) => Promise<void>
 }
 
-// Pomoćna funkcija za pretvaranje bilo kojeg YouTube linka u ispravan /embed/ format
-function getYouTubeEmbedUrl(url: string) {
+// Pomoćna funkcija za izvlačenje YouTube ID-a
+function getYouTubeId(url: string) {
   if (!url) return null
-
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
   const match = url.match(regExp)
-
-  if (match && match[2].length === 11) {
-    return `https://www.youtube.com/embed/${match[2]}?modestbranding=1&rel=0`
-  }
-
-  return url
+  return match && match[2].length === 11 ? match[2] : null
 }
 
 export function ExercisesClient({ initialExercises, isAdmin, deleteExercise }: ExercisesClientProps) {
@@ -107,55 +102,118 @@ export function ExercisesClient({ initialExercises, isAdmin, deleteExercise }: E
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredExercises.map((ex) => {
-              const isYouTube = ex.video_url.includes('youtube.com') || ex.video_url.includes('youtu.be')
-              const embedUrl = getYouTubeEmbedUrl(ex.video_url)
+            {filteredExercises.map((ex, index) => {
+              const youtubeId = getYouTubeId(ex.video_url)
+              const isYouTube = Boolean(youtubeId)
 
               return (
-                <div key={ex.id} className="bg-[#121212] border border-[#1f1f1f] rounded-xl overflow-hidden flex flex-col justify-between">
-                  <div>
-                    <div className="aspect-video bg-black w-full border-b border-[#1f1f1f]">
-                      {isYouTube ? (
-                        <iframe
-                          src={embedUrl || ''}
-                          title={ex.title}
-                          className="w-full h-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      ) : (
-                        <video
-                          src={ex.video_url}
-                          controls
-                          className="w-full h-full object-contain"
-                        />
-                      )}
-                    </div>
-                    <div className="p-4 space-y-2">
-                      <h3 className="font-display font-bold text-white text-lg">{ex.title}</h3>
-                      {ex.description && (
-                        <p className="text-gray-400 text-xs leading-relaxed">{ex.description}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Dugme za brisanje - vidljivo samo adminu */}
-                  {isAdmin && (
-                    <div className="p-4 border-t border-[#1f1f1f] bg-[#0a0a0a] flex justify-end">
-                      <DeleteExerciseButton
-                        exerciseId={ex.id}
-                        exerciseTitle={ex.title}
-                        deleteAction={deleteExercise}
-                      />
-                    </div>
-                  )}
-                </div>
+                <ExerciseCard 
+                  key={ex.id} 
+                  exercise={ex} 
+                  youtubeId={youtubeId} 
+                  isYouTube={isYouTube} 
+                  isAdmin={isAdmin} 
+                  deleteExercise={deleteExercise}
+                  index={index}
+                />
               )
             })}
           </div>
         )}
 
       </div>
+    </div>
+  )
+}
+
+// Odvojena pod-komponenta za svaku karticu vježbe da upravlja svojim state-om za Play
+function ExerciseCard({ 
+  exercise, 
+  youtubeId, 
+  isYouTube, 
+  isAdmin, 
+  deleteExercise,
+  index 
+}: { 
+  exercise: Exercise; 
+  youtubeId: string | null; 
+  isYouTube: boolean; 
+  isAdmin: boolean; 
+  deleteExercise: (formData: FormData) => Promise<void>;
+  index: number;
+}) {
+  const [isPlaying, setIsPlaying] = useState(false)
+
+  // Koristimo hqdefault sličicu koja se učitava ultra brzo
+  const thumbnailUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : null
+
+  return (
+    <div className="bg-[#121212] border border-[#1f1f1f] rounded-xl overflow-hidden flex flex-col justify-between group">
+      <div>
+        <div className="aspect-video bg-black w-full border-b border-[#1f1f1f] relative overflow-hidden">
+          {isYouTube && youtubeId ? (
+            !isPlaying ? (
+              <button
+                onClick={() => setIsPlaying(true)}
+                className="relative w-full h-full block cursor-pointer group/btn"
+                aria-label={`Pusti video ${exercise.title}`}
+              >
+                {thumbnailUrl && (
+                  <Image
+                    src={thumbnailUrl}
+                    alt={exercise.title}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    priority={index < 3} // Prva 3 videa učitavamo prioritetno
+                    loading={index < 3 ? undefined : 'lazy'}
+                    className="object-cover group-hover/btn:scale-105 transition-transform duration-300"
+                  />
+                )}
+                {/* Tamni overlay i Play ikonica */}
+                <div className="absolute inset-0 bg-black/40 group-hover/btn:bg-black/20 transition-colors flex items-center justify-center">
+                  <div className="w-12 h-12 bg-[#d4af37] text-black rounded-full flex items-center justify-center shadow-lg group-hover/btn:scale-110 transition-transform">
+                    <svg className="w-6 h-6 fill-current ml-0.5" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                </div>
+              </button>
+            ) : (
+              <iframe
+                src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&modestbranding=1&rel=0`}
+                title={exercise.title}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            )
+          ) : (
+            <video
+              src={exercise.video_url}
+              controls
+              className="w-full h-full object-contain"
+            />
+          )}
+        </div>
+
+        <div className="p-4 space-y-2">
+          <h3 className="font-display font-bold text-white text-lg">{exercise.title}</h3>
+          {exercise.description && (
+            <p className="text-gray-400 text-xs leading-relaxed">{exercise.description}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Dugme za brisanje - vidljivo samo adminu */}
+      {isAdmin && (
+        <div className="p-4 border-t border-[#1f1f1f] bg-[#0a0a0a] flex justify-end">
+          <DeleteExerciseButton
+            exerciseId={exercise.id}
+            exerciseTitle={exercise.title}
+            deleteAction={deleteExercise}
+          />
+        </div>
+      )}
     </div>
   )
 }
