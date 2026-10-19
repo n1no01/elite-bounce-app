@@ -125,13 +125,13 @@ export default async function LoginPage({ searchParams }: PageProps) {
           <form action={handleLogin} className="space-y-5">
             <div>
               <label className="block text-xs font-mono uppercase tracking-wider text-gray-300 mb-2">
-                Email / Ime
+                Email
               </label>
               <input 
                 type="text" 
                 name="identifier"
                 required
-                placeholder="npr. sportista@domain.com"
+                placeholder="Unesi svoj email..."
                 className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#d4af37] transition-colors"
               />
             </div>
@@ -145,7 +145,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
               <input 
                 type="password" 
                 name="password"
-                placeholder="Unesi svoju šifru..."
+                placeholder="Unesi svoju lozinku..."
                 className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#d4af37] transition-colors"
               />
             </div>

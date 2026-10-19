@@ -4,9 +4,10 @@ import { useState, useTransition } from 'react'
 
 interface ContactFormProps {
   submitInquiryAction: (formData: FormData) => Promise<{ success: boolean; message: string }>
+  initialProgram?: string
 }
 
-export function ContactForm({ submitInquiryAction }: ContactFormProps) {
+export function ContactForm({ submitInquiryAction, initialProgram }: ContactFormProps) {
   const [isPending, startTransition] = useTransition()
   const [status, setStatus] = useState<{ success?: boolean; message?: string } | null>(null)
 
@@ -33,22 +34,22 @@ export function ContactForm({ submitInquiryAction }: ContactFormProps) {
     <form onSubmit={handleSubmit} className="max-w-xl mx-auto space-y-4 text-left">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Ime i Prezime</label>
+          <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Ime i Prezime *</label>
           <input 
             type="text" 
             name="fullName" 
             required 
-            placeholder="npr. John Doe"
+            placeholder="Ime i prezime"
             className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-[#d4af37] font-sans"
           />
         </div>
         <div>
-          <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Email Adresa</label>
+          <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Email Adresa *</label>
           <input 
             type="email" 
             name="email" 
             required 
-            placeholder="john@example.com"
+            placeholder="Email adresa"
             className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-[#d4af37] font-sans"
           />
         </div>
@@ -58,6 +59,8 @@ export function ContactForm({ submitInquiryAction }: ContactFormProps) {
         <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Izaberi Program</label>
         <select 
           name="program" 
+          key={initialProgram} // Ključ osigurava da se select element ponovo renderuje i postavi novu vrijednost kad se promijeni initialProgram
+          defaultValue={initialProgram || 'The Vertical Protocol'}
           className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-[#d4af37] font-sans"
         >
           <option value="The Vertical Protocol">The Vertical Protocol (1 na 1)</option>
@@ -68,7 +71,7 @@ export function ContactForm({ submitInquiryAction }: ContactFormProps) {
       </div>
 
       <div>
-        <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Poruka / Tvoji ciljevi (trenutni skok, sport)</label>
+        <label className="block text-[10px] font-mono text-gray-400 uppercase mb-1">Poruka / Tvoji ciljevi (trenutni skok, sport) *</label>
         <textarea 
           name="message" 
           rows={4}
