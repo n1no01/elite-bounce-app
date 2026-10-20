@@ -106,29 +106,44 @@ export async function deleteAthlete(formData: FormData) {
 }
 
 export async function assignWorkout(formData: FormData) {
-  const athleteId = formData.get('athleteId') as string
-  const weekLabel = formData.get('weekLabel') as string 
-  const dayLabel = formData.get('dayLabel') as string 
+  const selectedAthletes = formData.getAll('athleteIds') as string[] // ili 'athleteId' sa multiple selectom
+  const weekLabel = formData.get('weekLabel') as string
+  const dayLabel = formData.get('dayLabel') as string
   const coachNotes = formData.get('coachNotes') as string
   const exercisesText = formData.get('exercisesText') as string
 
-  if (!athleteId || !weekLabel || !dayLabel) return
+  if (!weekLabel || !dayLabel || selectedAthletes.length === 0) {
+    throw new Error('Nedostaju obavezni podaci za dodjelu treninga.')
+  }
 
-  const exercisesArray: WorkoutExercise[] = exercisesText.split('\n').map(line => {
-    const parts = line.split('|')
+  // Parsiranje vježbi iz tekstualnog formata (Naziv | Opis | Serije)
+  const exercises = exercisesText.split('\n').map(line => {
+    const parts = line.split('|').map(p => p.trim())
     return {
-      name: parts[0]?.trim() || '',
-      desc: parts[1]?.trim() || '',
-      reps: parts[2]?.trim() || ''
+      name: parts[0] || 'Vježba',
+      desc: parts[1] || '',
+      reps: parts[2] || '3 x 10'
     }
-  })
+  }).filter(ex => ex.name)
 
-  await query(
-    'INSERT INTO workouts (athlete_id, week_label, phase_title, coach_notes, exercises) VALUES ($1, $2, $3, $4, $5)',
-    [athleteId, weekLabel, dayLabel, coachNotes, JSON.stringify(exercisesArray)]
-  )
+  // Ako je izabrano 'all', dohvati sve ID-jeve sportista iz baze
+  let targetAthleteIds = selectedAthletes
+  if (selectedAthletes.includes('all')) {
+    const allAthletesRes = await query<{ id: string }>('SELECT id FROM athletes')
+    targetAthleteIds = allAthletesRes.rows.map(a => a.id)
+  }
+
+  // Petlja koja upisuje trening za svakog izabranog sportistu
+  for (const athleteId of targetAthleteIds) {
+    await query(
+      `INSERT INTO workouts (athlete_id, week_label, phase_title, coach_notes, exercises, created_at) 
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
+      [athleteId, weekLabel, dayLabel, coachNotes, JSON.stringify(exercises)]
+    )
+  }
 
   revalidatePath('/admin')
+  redirect('/admin')
 }
 
 export async function updateWorkout(formData: FormData) {

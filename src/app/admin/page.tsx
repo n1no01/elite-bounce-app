@@ -2,9 +2,6 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { query } from '../lib/db'
 import Link from 'next/link'
-import { DeleteAthleteButton } from './DeleteAthleteButton'
-import { WorkoutsManager } from './WorkoutsManager'
-import { formatDateForInput } from '../lib/utils'
 import { ExerciseUploadForm } from './ExerciseUploadForm'
 import { 
   logoutAdmin, 
@@ -16,37 +13,30 @@ import {
   addJumpTest, 
   sendNotification, 
   deleteNotification,
+  markAthleteMessagesAsRead, 
+  sendAdminMessage 
 } from './actions'
-import { markAthleteMessagesAsRead, sendAdminMessage } from './actions'
-import { AdminChatWidget } from '../components/AdminChatWidget'
+
+import { AdminChatWidget } from './components/AdminChatWidget'
+import { AthletesSection } from './components/AthletesSection'
+import { JumpTestSection } from './components/JumpTestSection'
+import { WorkoutAssignSection } from './components/WorkoutAssignSection'
+import { NotificationSection } from './components/NotificationSection'
 
 interface Athlete {
   id: string
   full_name: string
   email: string | null
-  password: string | null
   gender: string
   sport: string | null
   birth_date: string | null
   notes: string | null
   is_paid: boolean
-  subscription_start_date: string | null
-}
-
-interface WorkoutExercise {
-  name: string
-  desc: string
-  reps: string
 }
 
 interface Workout {
   id: string
   athlete_id: string
-  week_label: string
-  phase_title: string
-  coach_notes: string | null
-  exercises: WorkoutExercise[]
-  created_at: string
 }
 
 interface Notification {
@@ -54,21 +44,17 @@ interface Notification {
   athlete_id: string | null
   title: string
   message: string
-  created_at: string
 }
 
 interface Exercise {
   id: string
   title: string
-  description: string | null
-  video_url: string
-  created_at: string
 }
 
 interface Message {
   id: string
   athlete_id: string
-  sender: string // 'athlete' | 'admin'
+  sender: string
   content: string
   is_read: boolean
   created_at: string
@@ -83,10 +69,10 @@ export default async function AdminPage() {
   }
 
   const athletesResult = await query<Athlete>('SELECT * FROM athletes ORDER BY created_at DESC')
-  const athletes = athletesResult.rows
+  const athletes: Athlete[] = athletesResult.rows
 
   const workoutsResult = await query<Workout>('SELECT * FROM workouts ORDER BY created_at DESC')
-  const workouts = workoutsResult.rows
+  const workouts: Workout[] = workoutsResult.rows
 
   let notifications: Notification[] = []
   try {
@@ -103,8 +89,6 @@ export default async function AdminPage() {
   } catch (e) {
     exercises = []
   }
-
-  const todayDateString = new Date().toISOString().split('T')[0]
 
   let messages: Message[] = []
   try {
@@ -148,336 +132,37 @@ export default async function AdminPage() {
           </div>
         </header>
 
-        {/* SEKCIJA 1: DODAVANJE I LISTA SPORTISTA */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Forma za novog sportistu */}
-          <div className="bg-[#121212] border border-[#1f1f1f] p-6 rounded-xl">
-            <h2 className="font-display text-xl font-bold uppercase mb-4 text-white">Dodaj Novog Sportistu</h2>
-            <form action={addAthlete} className="space-y-4">
-              <div>
-                <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Ime i Prezime</label>
-                <input type="text" name="fullName" required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" placeholder="npr. Anel Milak" />
-              </div>
+        {/* SEKCIJA 1: SPORTISTI */}
+        <AthletesSection 
+          athletes={athletes} 
+          workouts={workouts}
+          addAthlete={addAthlete}
+          updateAthlete={updateAthlete}
+          togglePayment={togglePayment}
+          deleteAthlete={deleteAthlete}
+        />
 
-              <div>
-                <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Email za prijavu</label>
-                <input type="email" name="email" className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" placeholder="sportista@domain.com" />
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Lozinka za sportistu</label>
-                <input type="text" name="password" className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" placeholder="npr. sifra123" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Spol</label>
-                  <select name="gender" required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none">
-                    <option value="Muški">Muški</option>
-                    <option value="Ženski">Ženski</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Datum Rođenja</label>
-                  <input type="date" name="birthDate" required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Sport (Opcionalno)</label>
-                <input type="text" name="sport" className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" placeholder="npr. Košarka" />
-              </div>
-
-              <div className="flex items-center gap-3 pt-2">
-                <input type="checkbox" name="isPaid" id="isPaidNew" className="w-4 h-4 accent-[#d4af37]" />
-                <label htmlFor="isPaidNew" className="text-xs font-mono text-gray-300 uppercase cursor-pointer">Uplaćeno (Aktiviraj odmah)</label>
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Bilješke (Opcionalno)</label>
-                <textarea name="notes" rows={2} className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" placeholder="Povrede, ciljevi..." />
-              </div>
-
-              <button type="submit" className="w-full bg-[#d4af37] text-black font-display font-bold uppercase tracking-wider py-3 rounded hover:bg-yellow-600 transition-all text-xs cursor-pointer">
-                Sačuvaj Sportistu
-              </button>
-            </form>
-          </div>
-
-          {/* Lista sportista */}
-          <div className="bg-[#121212] border border-[#1f1f1f] p-6 rounded-xl flex flex-col justify-between">
-            <div>
-              <h2 className="font-display text-xl font-bold uppercase mb-4 text-white">Lista Sportista ({athletes.length})</h2>
-              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                {athletes.map(athlete => {
-                  const athleteWorkouts = workouts.filter(w => w.athlete_id === athlete.id)
-
-                  return (
-                    <div key={athlete.id} className="bg-[#0a0a0a] border border-[#1f1f1f] p-4 rounded-lg space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <Link 
-                              href={`/admin/athletes/${athlete.id}`}
-                              className="font-display font-bold text-white text-sm hover:text-[#d4af37] transition-colors underline decoration-[#d4af37]/40 underline-offset-4"
-                            >
-                              {athlete.full_name} ↗
-                            </Link>
-                            
-                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase ${athlete.is_paid ? 'bg-green-950/40 border-green-800 text-green-400' : 'bg-red-950/40 border-red-900 text-red-400'}`}>
-                              {athlete.is_paid ? 'Uplaćeno 🟢' : 'Nije uplaćeno 🔴'}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <form action={togglePayment}>
-                            <input type="hidden" name="id" value={athlete.id} />
-                            <input type="hidden" name="currentStatus" value={String(athlete.is_paid)} />
-                            <button type="submit" className={`text-xs font-mono px-3 py-1.5 rounded transition-colors cursor-pointer border ${athlete.is_paid ? 'border-yellow-900/40 bg-yellow-950/20 text-yellow-400 hover:bg-yellow-900/30' : 'border-green-900/40 bg-green-950/20 text-green-400 hover:bg-green-900/30'}`}>
-                              {athlete.is_paid ? 'Poništi uplatu' : 'Odobri uplatu'}
-                            </button>
-                          </form>
-
-                          <DeleteAthleteButton 
-                            athleteId={athlete.id} 
-                            athleteName={athlete.full_name} 
-                            deleteAction={deleteAthlete} 
-                          />
-                        </div>
-                      </div>
-
-                      <details className="text-xs text-gray-400 pt-2 border-t border-[#1f1f1f]">
-                        <summary className="cursor-pointer hover:text-[#d4af37] font-mono uppercase text-[10px] flex items-center justify-between">
-                          <span>Uredi podatke ⚙️</span>
-                          <span className="text-gray-500">{athleteWorkouts.length} dodijeljenih treninga</span>
-                        </summary>
-                        
-                        <form action={updateAthlete} className="mt-3 space-y-3 bg-[#121212] p-3 rounded border border-[#1f1f1f]">
-                          <input type="hidden" name="id" value={athlete.id} />
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="text-[10px] font-mono text-gray-500 uppercase">Ime i prezime</label>
-                              <input type="text" name="fullName" defaultValue={athlete.full_name} required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-white" />
-                            </div>
-                            <div>
-                              <label className="text-[10px] font-mono text-gray-500 uppercase">Sport</label>
-                              <input type="text" name="sport" defaultValue={athlete.sport || ''} className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-white" />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="text-[10px] font-mono text-gray-500 uppercase">Spol</label>
-                              <select name="gender" defaultValue={athlete.gender} className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-white">
-                                <option value="Muški">Muški</option>
-                                <option value="Ženski">Ženski</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-[10px] font-mono text-gray-500 uppercase">Datum Rođenja</label>
-                              <input type="date" name="birthDate" defaultValue={formatDateForInput(athlete.birth_date)} required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-white" />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] font-mono text-gray-500 uppercase">Bilješke</label>
-                            <textarea name="notes" defaultValue={athlete.notes || ''} rows={2} className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-2 text-white" />
-                          </div>
-                        
-                          <button type="submit" className="w-full bg-[#d4af37] text-black font-bold py-2 rounded hover:bg-yellow-600 transition-colors uppercase text-[10px] cursor-pointer">
-                            Sačuvaj Izmjene Sportiste
-                          </button>
-                        </form>
-
-                      
-                      </details>
-                    </div>
-                  )
-                })}
-                {athletes.length === 0 && <p className="text-gray-500 text-sm">Nema unesenih sportista.</p>}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* SEKCIJA 2: UNOS POJEDINAČNOG TESTA SKOKA */}
-        <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl space-y-6">
-          <div className="border-b border-[#1f1f1f] pb-4">
-            <h2 className="font-display text-xl font-bold uppercase text-white mt-1">Dodaj Test Skoka</h2>
-          </div>
-
-          <form action={addJumpTest} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-            <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Sportista</label>
-              <select name="athleteId" required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none">
-                <option value="">-- Izaberi sportistu --</option>
-                {athletes.map(a => (
-                  <option key={a.id} value={a.id}>{a.full_name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Tip Testa</label>
-              <select name="testType" required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none">
-                <option value="CMJ">CMJ (Countermovement Jump)</option>
-                <option value="CMJ-AS">CMJ-AS (with Arm Swing)</option>
-                <option value="SJ">SJ (Squat Jump)</option>
-                <option value="BJ">BJ (Broad Jump)</option>
-                <option value="AJ">AJ (Approach Jump)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Vrijednost (cm)</label>
-              <input type="number" step="0.1" name="value" required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" placeholder="npr. 45.5" />
-            </div>
-
-            <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Datum Testiranja</label>
-              <input type="date" name="testDate" defaultValue={formatDateForInput(new Date())} required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" />
-            </div>
-
-            <div>
-              <button type="submit" className="w-full bg-[#d4af37] text-black font-display font-bold uppercase tracking-wider py-3.5 rounded hover:bg-yellow-600 transition-all text-xs cursor-pointer">
-                Sačuvaj Test
-              </button>
-            </div>
-          </form>
-        </div>
+        {/* SEKCIJA 2: TEST SKOKA */}
+        <JumpTestSection 
+          athletes={athletes} 
+          addJumpTest={addJumpTest} 
+        />
 
         {/* SEKCIJA 3: KREIRANJE TRENINGA */}
-        <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl">
-          <h2 className="font-display text-xl font-bold uppercase mb-6 text-white">Dodijeli Trening</h2>
-          <form action={assignWorkout} className="space-y-6">
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Izaberi Sportistu</label>
-                <select name="athleteId" required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none">
-                  <option value="">-- Izaberi --</option>
-                  {athletes.map(a => (
-                    <option key={a.id} value={a.id}>{a.full_name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Izaberi Sedmicu</label>
-                <select name="weekLabel" required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none">
-                  <option value="">-- Sedmica --</option>
-                  <option value="Sedmica 1">Sedmica 1</option>
-                  <option value="Sedmica 2">Sedmica 2</option>
-                  <option value="Sedmica 3">Sedmica 3</option>
-                  <option value="Sedmica 4">Sedmica 4</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Dan i Fokus Treninga</label>
-                <input type="text" name="dayLabel" required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" placeholder="npr. Dan 1 - Apsolutna Snaga" />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Komentar / Napomena Trenera</label>
-              <textarea name="coachNotes" rows={3} className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" placeholder="Upute za izvođenje, zagrijavanje..." />
-            </div>
-
-            <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">
-                Vježbe (Format: Naziv | Opis | Serije - svaka u novi red)
-              </label>
-              <textarea name="exercisesText" rows={4} className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none font-mono text-xs" placeholder="A-Skips | Mehanika sprinta | 3 x 20m&#10;Depth Jumps | Minimalan kontakt | 4 x 4" />
-            </div>
-
-            <button type="submit" className="bg-[#d4af37] text-black font-display font-bold uppercase tracking-wider px-8 py-3 rounded hover:bg-yellow-600 transition-all text-xs cursor-pointer">
-              Objavi Trening za Izabranu Sedmicu
-            </button>
-          </form>
-        </div>
+        <WorkoutAssignSection 
+          athletes={athletes} 
+          assignWorkout={assignWorkout} 
+        />
           
-        {/* SEKCIJA 4: SLANJE OBAVJEŠTENJA */}
-        <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl space-y-6">
-          <div className="border-b border-[#1f1f1f] pb-4 flex items-center justify-between">
-            <div>
-              <h2 className="font-display text-xl font-bold uppercase text-white mt-1">Pošalji obavijest</h2>
-            </div>
-          </div>
+        {/* SEKCIJA 4: OBAVJEŠTENJA */}
+        <NotificationSection 
+          athletes={athletes} 
+          notifications={notifications} 
+          sendNotification={sendNotification} 
+          deleteNotification={deleteNotification} 
+        />
 
-          <form action={sendNotification} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Kome šalješ?</label>
-                <select name="recipientType" defaultValue="all" className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none">
-                  <option value="all">Svi sportisti</option>
-                  <option value="single">Pojedinačni sportista</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Izaberi sportistu (Samo za pojedinačno)</label>
-                <select name="athleteId" className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none">
-                  <option value="">-- Izaberi sportistu --</option>
-                  {athletes.map(a => (
-                    <option key={a.id} value={a.id}>{a.full_name} ({a.sport || 'Opći'})</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Naslov obavještenja</label>
-              <input type="text" name="title" required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" placeholder="npr. Promjena termina treninga" />
-            </div>
-
-            <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1 uppercase">Tekst obavještenja / poruke</label>
-              <textarea name="message" rows={3} required className="w-full bg-[#0a0a0a] border border-[#1f1f1f] rounded p-3 text-sm text-white focus:border-[#d4af37] outline-none" placeholder="Unesite poruku za sportistu..." />
-            </div>
-
-            <button type="submit" className="bg-[#d4af37] text-black font-display font-bold uppercase tracking-wider px-8 py-3 rounded hover:bg-yellow-600 transition-all text-xs cursor-pointer">
-              Pošalji Obavještenje
-            </button>
-          </form>
-
-          {/* Pregled poslanih obavještenja */}
-          <div className="pt-4 border-t border-[#1f1f1f] space-y-3">
-            <span className="text-xs font-mono text-gray-400 uppercase">Poslana obavještenja ({notifications.length})</span>
-            {notifications.length === 0 ? (
-              <p className="text-xs text-gray-500 italic">Nema poslanih obavještenja.</p>
-            ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {notifications.map(n => {
-                  const targetAthlete = athletes.find(a => a.id === n.athlete_id)
-                  return (
-                    <div key={n.id} className="bg-[#0a0a0a] p-3 rounded border border-[#1f1f1f] flex items-center justify-between text-xs">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white">{n.title}</span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-yellow-950/30 border border-yellow-900/40 text-[#d4af37]">
-                            {n.athlete_id ? `Za: ${targetAthlete?.full_name || 'Nepoznato'}` : 'Za: Svi sportisti 🌍'}
-                          </span>
-                        </div>
-                        <p className="text-gray-400 mt-1">{n.message}</p>
-                      </div>
-                      <form action={deleteNotification}>
-                        <input type="hidden" name="notificationId" value={n.id} />
-                        <button type="submit" className="text-red-400 hover:text-red-300 font-mono border border-red-900/40 px-2 py-1 rounded bg-red-950/20 cursor-pointer text-[10px]">
-                          Obriši
-                        </button>
-                      </form>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* SEKCIJA 5: BIBLIOTEKA VJEŽBI (FORMA ZA DODAVANJE) */}
+        {/* SEKCIJA 5: BIBLIOTEKA VJEŽBI */}
         <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl space-y-6">
           <div className="border-b border-[#1f1f1f] pb-4 flex items-center justify-between">
             <div>
@@ -499,6 +184,7 @@ export default async function AdminPage() {
         </div>
 
       </div>
+
       <AdminChatWidget 
         athletes={athletes} 
         messages={messages} 
