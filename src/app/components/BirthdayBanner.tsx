@@ -1,46 +1,100 @@
-'tsx'
+
+"use client"
+
 interface Athlete {
   birth_date: string | Date | null
   full_name: string
 }
 
-export default function BirthdayBanner({ athlete }: { athlete: Athlete }) {
-  if (!athlete.birth_date) return null
+function getBirthdayParts(
+  birthDate: string | Date | null
+): { month: number; day: number } | null {
+  if (!birthDate) return null
 
-  // Parsiramo datum rođenja bez pomicanja vremenske zone (uzimamo lokalni mjesec i dan)
-  const bDate = typeof athlete.birth_date === 'string' 
-    ? new Date(athlete.birth_date.split('T')[0] + 'T00:00:00') 
-    : new Date(athlete.birth_date)
+  if (typeof birthDate === "string") {
+    // SQL DATE format: YYYY-MM-DD
+    const match = birthDate.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+    if (!match) return null
 
-  const today = new Date()
+    const year = Number(match[1])
+    const month = Number(match[2])
+    const day = Number(match[3])
 
-  // Provjeravamo da li se poklapaju dan i mjesec
-  const isBirthday = 
-    bDate.getDate() === today.getDate() && 
-    bDate.getMonth() === today.getMonth()
+    const check = new Date(year, month - 1, day)
+
+    if (
+      check.getFullYear() !== year ||
+      check.getMonth() !== month - 1 ||
+      check.getDate() !== day
+    ) {
+      return null
+    }
+
+    return { month, day }
+  }
+
+  if (Number.isNaN(birthDate.getTime())) return null
+
+  return {
+    month: birthDate.getMonth() + 1,
+    day: birthDate.getDate(),
+  }
+}
+
+export default function BirthdayBanner({
+  athlete,
+}: {
+  athlete: Athlete
+}) {
+  // Koristimo kalendarski datum u vremenskoj zoni BiH.
+  const birthday = getBirthdayParts(athlete?.birth_date)
+
+  const todayParts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Sarajevo",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(new Date())
+
+  const todayMonth = Number(
+    todayParts.find((part) => part.type === "month")?.value
+  )
+  const todayDay = Number(
+    todayParts.find((part) => part.type === "day")?.value
+  )
+
+  const isBirthday =
+    birthday !== null &&
+    birthday.month === todayMonth &&
+    birthday.day === todayDay
 
   if (!isBirthday) return null
 
   return (
-    <div className="bg-gradient-to-r from-[#d4af37]/30 via-[#121212] to-[#121212] border-2 border-[#d4af37] rounded-2xl p-6 sm:p-8 space-y-3 shadow-2xl shadow-[#d4af37]/20 relative overflow-hidden">
-      <div className="absolute -right-10 -bottom-10 text-8xl opacity-10 pointer-events-none">
+    <div className="relative overflow-hidden rounded-2xl border-2 border-[#d4af37] bg-gradient-to-r from-[#d4af37]/30 via-[#121212] to-[#121212] p-6 shadow-2xl shadow-[#d4af37]/20 space-y-3 sm:p-8">
+      <div className="pointer-events-none absolute -right-10 -bottom-10 text-8xl opacity-10">
         🎂
       </div>
+
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-xl bg-[#d4af37] text-black flex items-center justify-center text-2xl font-bold shadow-lg">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#d4af37] text-2xl font-bold text-black shadow-lg">
           🎉
         </div>
+
         <div>
-          <span className="text-[#d4af37] font-mono text-[10px] font-bold uppercase tracking-widest">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#d4af37]">
             POSEBAN DAN
           </span>
-          <h2 className="font-display text-xl sm:text-2xl font-black uppercase text-white">
+
+          <h2 className="font-display text-xl font-black uppercase text-white sm:text-2xl">
             Sretan rođendan, {athlete.full_name}! 🎂
           </h2>
         </div>
       </div>
-      <p className="text-xs sm:text-sm text-gray-200 font-medium leading-relaxed max-w-2xl">
-        Cijeli Elite Bounce tim ti želi sretan rođendan! Nastavi gaziti, ruši svoje granice i dominiraj svake sekunde treninga. Idemo jako!
+
+      <p className="relative max-w-2xl text-xs font-medium leading-relaxed text-gray-200 sm:text-sm">
+        Cijeli Elite Bounce tim ti želi sretan rođendan!
+        Nastavi gaziti, ruši svoje granice i dominiraj
+        svakom sekundom treninga. Idemo jako!
       </p>
     </div>
   )
