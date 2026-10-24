@@ -14,7 +14,9 @@ import {
   sendNotification, 
   deleteNotification,
   markAthleteMessagesAsRead, 
-  sendAdminMessage 
+  sendAdminMessage,
+  createGroup,
+  deleteGroup
 } from './actions'
 
 import { AdminChatWidget } from './components/AdminChatWidget'
@@ -22,6 +24,7 @@ import { AthletesSection } from './components/AthletesSection'
 import { JumpTestSection } from './components/JumpTestSection'
 import { WorkoutAssignSection } from './components/WorkoutAssignSection'
 import { NotificationSection } from './components/NotificationSection'
+import { GroupsManager } from './components/GroupsManager'
 
 interface Athlete {
   id: string
@@ -58,6 +61,13 @@ interface Message {
   content: string
   is_read: boolean
   created_at: string
+}
+
+interface Group {
+  id: string
+  name: string
+  description: string | null
+  athlete_ids: string[]
 }
 
 export default async function AdminPage() {
@@ -98,6 +108,22 @@ export default async function AdminPage() {
     messages = []
   }
 
+  // Dohvaćanje grupa i njihovih članova iz baze
+  let groups: Group[] = []
+  try {
+    const groupsResult = await query<Group>(`
+      SELECT g.id, g.name, g.description, 
+             COALESCE(ARRAY_AGG(ga.athlete_id) FILTER (WHERE ga.athlete_id IS NOT NULL), '{}') as athlete_ids
+      FROM groups g
+      LEFT JOIN group_athletes ga ON g.id = ga.group_id
+      GROUP BY g.id, g.name, g.description
+      ORDER BY g.created_at DESC
+    `)
+    groups = groupsResult.rows
+  } catch (e) {
+    groups = []
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f5f5f5] p-6 sm:p-10 font-sans">
       <div className="max-w-6xl mx-auto space-y-12">
@@ -132,7 +158,8 @@ export default async function AdminPage() {
           </div>
         </header>
 
-        {/* SEKCIJA 1: SPORTISTI */}
+        
+        {/* SEKCIJA ZA SPORTISTE */}
         <AthletesSection 
           athletes={athletes} 
           workouts={workouts}
@@ -142,19 +169,29 @@ export default async function AdminPage() {
           deleteAthlete={deleteAthlete}
         />
 
-        {/* SEKCIJA 2: TEST SKOKA */}
+        {/* SEKCIJA ZA TESTOVE SKOKA */}
         <JumpTestSection 
           athletes={athletes} 
           addJumpTest={addJumpTest} 
         />
 
-        {/* SEKCIJA 3: KREIRANJE TRENINGA */}
+        {/* SEKCIJA ZA KREIRANJE TRENINGA */}
         <WorkoutAssignSection 
           athletes={athletes} 
+          groups={groups}
           assignWorkout={assignWorkout} 
         />
+
+        {/* SEKCIJA ZA UPRAVLJANJE GRUPAMA */}
+        <GroupsManager 
+          athletes={athletes} 
+          groups={groups} 
+          createGroupAction={createGroup} 
+          deleteGroupAction={deleteGroup} 
+        />
+
           
-        {/* SEKCIJA 4: OBAVJEŠTENJA */}
+        {/* SEKCIJA ZA OBAVJEŠTENJA */}
         <NotificationSection 
           athletes={athletes} 
           notifications={notifications} 
@@ -162,11 +199,10 @@ export default async function AdminPage() {
           deleteNotification={deleteNotification} 
         />
 
-        {/* SEKCIJA 5: BIBLIOTEKA VJEŽBI */}
+        {/* SEKCIJA ZA BIBLIOTEKU VJEŽBI */}
         <div className="bg-[#121212] border border-[#1f1f1f] p-6 sm:p-8 rounded-xl space-y-6">
           <div className="border-b border-[#1f1f1f] pb-4 flex items-center justify-between">
             <div>
-              <span className="text-[#d4af37] font-mono text-xs uppercase tracking-wider">Video Biblioteka</span>
               <h2 className="font-display text-xl font-bold uppercase text-white mt-1">Dodaj Novu Vježbu</h2>
             </div>
             

@@ -106,7 +106,7 @@ export async function deleteAthlete(formData: FormData) {
 }
 
 export async function assignWorkout(formData: FormData) {
-  const selectedAthletes = formData.getAll('athleteIds') as string[] // ili 'athleteId' sa multiple selectom
+  const selectedAthletes = formData.getAll('athleteIds') as string[]
   const weekLabel = formData.get('weekLabel') as string
   const dayLabel = formData.get('dayLabel') as string
   const coachNotes = formData.get('coachNotes') as string
@@ -116,13 +116,13 @@ export async function assignWorkout(formData: FormData) {
     throw new Error('Nedostaju obavezni podaci za dodjelu treninga.')
   }
 
-  // Parsiranje vježbi iz tekstualnog formata (Naziv | Opis | Serije)
+  // Parsiranje vježbi (ako nema trećeg dijela, reps ostaje prazan, nema više '3 x 10')
   const exercises = exercisesText.split('\n').map(line => {
     const parts = line.split('|').map(p => p.trim())
     return {
       name: parts[0] || 'Vježba',
       desc: parts[1] || '',
-      reps: parts[2] || '3 x 10'
+      reps: parts[2] || '' // Ispravljeno: nema više neželjenog default teksta
     }
   }).filter(ex => ex.name)
 
@@ -140,13 +140,16 @@ export async function assignWorkout(formData: FormData) {
        VALUES ($1, $2, $3, $4, $5, NOW())`,
       [athleteId, weekLabel, dayLabel, coachNotes, JSON.stringify(exercises)]
     )
+    revalidatePath(`/admin/athletes/${athleteId}`)
   }
 
   revalidatePath('/admin')
-  redirect('/admin')
+  
+  // NEMA više redirect-a! Korisnik ostaje tačno na stranici sa koje je poslao formu.
 }
 
 export async function updateWorkout(formData: FormData) {
+  const athleteIds = formData.getAll('athleteIds') as string[]
   const workoutId = formData.get('workoutId') as string
   const weekLabel = formData.get('weekLabel') as string
   const dayLabel = formData.get('dayLabel') as string
@@ -170,6 +173,16 @@ export async function updateWorkout(formData: FormData) {
   )
 
   revalidatePath('/admin')
+
+  for (const id of athleteIds) {
+    revalidatePath(`/admin/athletes/${id}`)
+  }
+
+  if (athleteIds.length === 1) {
+    redirect(`/admin/athletes/${athleteIds[0]}`)
+  } else {
+    redirect('/admin')
+  }
 }
 
 export async function deleteWorkout(formData: FormData) {
@@ -283,5 +296,47 @@ export async function sendAdminMessage(formData: FormData) {
     "INSERT INTO messages (athlete_id, sender, content, is_read, created_at) VALUES ($1, 'trainer', $2, TRUE, NOW())",
     [athleteId, message]
   )
+  revalidatePath('/admin')
+}
+
+// 1. Kreiranje nove grupe i dodjeljivanje članova
+export async function createGroup(formData: FormData) {
+  const name = formData.get('groupName') as string
+  const description = formData.get('description') as string
+  const athleteIds = formData.getAll('athleteIds') as string[]
+
+  if (!name || name.trim() === '') {
+    throw new Error('Naziv grupe je obavezan.')
+  }
+
+  // Kreiraj grupu
+  const groupRes = await query<{ id: string }>(
+    `INSERT INTO groups (name, description, created_at) VALUES ($1, $2, NOW()) RETURNING id`,
+    [name.trim(), description || '']
+  )
+
+  const groupId = groupRes.rows[0]?.id
+
+  // Ubaci izabrane sportiste u grupu
+  if (groupId && athleteIds.length > 0) {
+    for (const athleteId of athleteIds) {
+      await query(
+        `INSERT INTO group_athletes (group_id, athlete_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [groupId, athleteId]
+      )
+    }
+  }
+
+  revalidatePath('/admin')
+}
+
+// 2. Brisanje grupe
+export async function deleteGroup(formData: FormData) {
+  const groupId = formData.get('groupId') as string
+
+  if (groupId) {
+    await query(`DELETE FROM groups WHERE id = $1`, [groupId])
+  }
+
   revalidatePath('/admin')
 }

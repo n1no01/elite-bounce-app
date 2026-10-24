@@ -7,7 +7,7 @@ import ChatBox from '@/app/components/ChatBox'
 import AthleteMetricsCard from './components/AthleteMetricsCard'
 import JumpTestsSection from './components/JumpTestsSection'
 import WorkoutsSection from './components/WorkoutsSection'
-
+import { assignWorkout } from '../../actions' 
 interface Athlete {
   id: string
   full_name: string
@@ -204,7 +204,7 @@ export default async function AthleteDetailPage({
         <JumpTestsSection tests={tests} athleteId={athlete.id} deleteJumpTest={deleteJumpTest} />
 
         {/* Sekcija: Treninzi */}
-        <WorkoutsSection workouts={workouts} athleteId={athlete.id} deleteWorkout={deleteWorkout} />
+        <WorkoutsSection workouts={workouts} athleteId={athlete.id} deleteWorkout={deleteWorkout} assignWorkout={assignWorkout} />
 
         {/* Modal za Uređivanje Treninga */}
         {editingWorkout && (
