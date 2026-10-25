@@ -3,8 +3,11 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Elite Bounce | Specijalizovani program za vertikalni skok u Sarajevu',
+    default: 'Elite Bounce | Specijalizovani program za vertikalni skok',
     template: '%s | Elite Bounce',
+  },
+  alternates: {
+    canonical: 'https://elitebounce.fit',
   },
   description: 'Profesionalni sistem za praćenje skokova, testiranje sportista i analizu vertikalnog odraza (CMJ, SJ, Approach Jump).',
   keywords: [
@@ -48,7 +51,7 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: 'Elite Bounce | Specijalizovani program za vertikalni skok u Sarajevu',
+    title: 'Elite Bounce | Specijalizovani program za vertikalni skok',
     description: 'Sistem za praćenje skokova i napretka sportista.',
     url: 'https://elitebounce.fit',
     siteName: 'Elite Bounce',

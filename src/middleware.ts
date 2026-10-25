@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   const adminSession = request.cookies.get('admin_auth')
 
   // Zaštita za /exercises (potreban ili athlete ili admin cookie)
-  if (pathname.startsWith('/exercises')) {
+  if (pathname.startsWith('/exercises') || pathname.startsWith('/leaderboard')) {
     if (!athleteSession && !adminSession) {
       return NextResponse.redirect(new URL('/login', request.nextUrl))
     }
